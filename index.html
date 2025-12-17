@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1 class="title">🎲 Lottery System</h1>
+        <div class="control-panel">
+            <div class="control-row-single">
+                <div class="control-group">
+                    <label for="winner-count">Number of Winners</label>
+                    <div class="number-stepper">
+                        <button type="button" class="stepper-btn stepper-minus" id="decrease-btn" aria-label="Decrease">−</button>
+                        <input 
+                            type="number" 
+                            id="winner-count" 
+                            class="number-input stepper-input" 
+                            min="1" 
+                            value="3"
+                        >
+                        <button type="button" class="stepper-btn stepper-plus" id="increase-btn" aria-label="Increase">+</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="grid-size">Total Grid Size</label>
+                    <select id="grid-size" class="select-input">
+                        <option value="16x9">16x9</option>
+                        <option value="32x18">32x18</option>
+                        <option value="48x27">48x27</option>
+                        <option value="80x45">80x45</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="speed-slider">Speed</label>
+                    <div class="slider-container">
+                        <input 
+                            type="range" 
+                            id="speed-slider" 
+                            class="slider-input" 
+                            min="0.5" 
+                            max="5" 
+                            step="0.5" 
+                            value="1"
+                        >
+                        <span id="speed-value">1x</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="start-btn" class="btn btn-primary" disabled>Start Draw</button>
+                    <button id="reset-btn" class="btn btn-secondary">Reset</button>
+                    <button id="copy-btn" class="btn btn-secondary">Copy Results</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana Layout: 3 Kolon -->
+    <main class="main-container">
+        <!-- Sol Taraf: İsim Girişi (Dikey) -->
+        <aside class="input-sidebar">
+            <div class="input-panel">
+                <h2 class="input-title">📝 Name List</h2>
+                <div class="control-group">
+                    <label for="names-input">Names (separated by newlines or commas)</label>
+                    <textarea 
+                        id="names-input" 
+                        class="textarea-input vertical-input" 
+                        placeholder="Example:&#10;John Smith&#10;Jane Doe&#10;Bob Johnson&#10;&#10;or&#10;&#10;Alice Brown, Charlie Wilson, David Lee"
+                    ></textarea>
+                    <div class="counter">
+                        <span id="name-count">0</span> names, 
+                        <span id="char-count">0</span> characters
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Orta: Yılan Oyunu Grid -->
+        <div class="visualization-container" id="visualization-container">
+            <div class="snake-game-container">
+                <div class="grid-container" id="grid-container">
+                    <!-- 100 kare burada oluşturulacak -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Taraf: Talihliler -->
+        <aside class="right-panel">
+            <!-- Winners List -->
+            <div class="winners-panel">
+                <h2 class="winners-title">🏆 Winners</h2>
+                <div class="game-stats" id="game-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Remaining Winners:</span>
+                        <span class="stat-value" id="remaining-winners">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Elapsed Time:</span>
+                        <span class="stat-value" id="elapsed-time">00:00</span>
+                    </div>
+                </div>
+                <div class="winners-list" id="winners-list">
+                    <p class="empty-message">Draw results will appear here...</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Draw Completed Overlay -->
+    <div id="completion-overlay" class="completion-overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">🎉</div>
+            <h2 class="overlay-title">The Lucky Winner is Revealed!</h2>
+            <p class="overlay-message">All winners have been selected.</p>
+            <div class="overlay-buttons">
+                <button id="overlay-copy-btn" class="btn btn-primary">Copy Results</button>
+                <button id="overlay-restart-btn" class="btn btn-secondary">Restart</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon" id="modal-icon">⚠️</div>
+            <h2 class="modal-title" id="modal-title">Warning</h2>
+            <p class="modal-message" id="modal-message">Message goes here</p>
+            <div class="modal-buttons">
+                <button id="modal-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

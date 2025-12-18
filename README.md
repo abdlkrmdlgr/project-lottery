@@ -56,14 +56,42 @@ http://localhost:8000
 
 ### Publishing with GitHub Pages
 
-1. Push the repository to GitHub
-2. Go to Repository Settings > Pages section
-3. Select "main branch" as source
-4. Click Save button
-5. Your site will be live in a few minutes:
+#### Otomatik Deploy (Önerilen - GitHub Actions ile)
+
+Proje GitHub Actions workflow ile otomatik olarak deploy edilir. Sadece şu adımları izleyin:
+
+1. **Repository'yi GitHub'a push edin:**
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
    ```
-   https://<username>.github.io/project-lottery/
-   ```
+
+2. **GitHub Repository Ayarları:**
+   - Repository'nize gidin: `https://github.com/<username>/project-lottery`
+   - **Settings** > **Pages** bölümüne gidin
+   - **Source** kısmında **"GitHub Actions"** seçeneğini seçin
+   - Kaydedin
+
+3. **Otomatik Deploy:**
+   - `main` veya `master` branch'ine her push yaptığınızda otomatik olarak deploy edilir
+   - Actions sekmesinden deploy durumunu takip edebilirsiniz
+   - Birkaç dakika içinde siteniz canlı olacak:
+     ```
+     https://<username>.github.io/project-lottery/
+     ```
+
+#### Manuel Deploy (Alternatif)
+
+Eğer GitHub Actions kullanmak istemiyorsanız:
+
+1. Repository'yi GitHub'a push edin
+2. **Settings** > **Pages** bölümüne gidin
+3. **Source** kısmında **"Deploy from a branch"** seçin
+4. Branch olarak **"main"** veya **"master"** seçin
+5. Folder olarak **"/ (root)"** seçin
+6. **Save** butonuna tıklayın
+7. Birkaç dakika içinde siteniz canlı olacak
 
 ## 📋 How to Use?
 
@@ -100,10 +128,14 @@ http://localhost:8000
 
 ```
 project-lottery/
-├── index.html      # Main HTML file
-├── styles.css      # CSS styles
-├── script.js       # JavaScript logic and snake game code
-└── README.md       # This file
+├── index.html                    # Main HTML file
+├── styles.css                    # CSS styles
+├── script.js                     # JavaScript logic and snake game code
+├── README.md                     # This file
+├── .nojekyll                     # GitHub Pages için Jekyll'i devre dışı bırakır
+└── .github/
+    └── workflows/
+        └── deploy.yml            # GitHub Actions deploy workflow
 ```
 
 ## 🎨 Customization

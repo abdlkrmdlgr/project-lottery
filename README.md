@@ -2,6 +2,24 @@
 
 Modern, interactive and visually impressive lottery system. A professional lottery application built using a snake game visualization.
 
+## 🎥 Demo Video
+
+Watch the application in action:
+
+[![Lottery System Demo](https://img.youtube.com/vi/Lfd8UAVf374/0.jpg)](https://youtu.be/Lfd8UAVf374)
+
+## 📖 About
+
+The Lottery System is a cutting-edge web application that transforms the traditional lottery drawing experience into an engaging and visually captivating event. Built entirely with vanilla JavaScript, HTML5, and CSS3, this project combines the excitement of a classic snake game with the functionality of a professional lottery system. The application features a dynamic grid-based visualization where participant names are randomly distributed across a customizable grid, and an animated snake traverses the board to select winners in real-time. With its modern glassmorphism design, smooth animations, and responsive layout, the system provides an intuitive user experience across all devices. Users can easily input names, configure draw parameters such as the number of winners and grid size, adjust animation speed, and instantly copy results to their clipboard. The project emphasizes both visual appeal and practical functionality, making it perfect for events, competitions, or any scenario requiring fair and transparent random selection.
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="images/screenshot1.png" alt="Lottery System Screenshot 1" width="800"/>
+  <br/><br/>
+  <img src="images/screenshot2.png" alt="Lottery System Screenshot 2" width="800"/>
+</div>
+
 ## ✨ Features
 
 ### 🎯 Snake Game Visualization
@@ -133,6 +151,9 @@ project-lottery/
 ├── script.js                     # JavaScript logic and snake game code
 ├── README.md                     # This file
 ├── .nojekyll                     # GitHub Pages için Jekyll'i devre dışı bırakır
+├── images/                       # Screenshots and images
+│   ├── screenshot1.png          # Application screenshot 1
+│   └── screenshot2.png          # Application screenshot 2
 └── .github/
     └── workflows/
         └── deploy.yml            # GitHub Actions deploy workflow

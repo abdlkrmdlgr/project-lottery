@@ -1,6 +1,8 @@
 # 🎲 Lottery System
 
 Modern, interactive and visually impressive lottery system. A professional lottery application built using a snake game visualization.
+## 🌐 Live Demo
+<a href='https://abdlkrmdlgr.github.io/project-lottery' target='_blank'>Live Demo</a>
 
 ## 🎥 Demo Video
 

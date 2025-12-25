@@ -1520,7 +1520,7 @@ body {
         height: 100%;
         background: transparent;
         border: none;
-        color: var(--text-secondary);
+        color: white;
         cursor: pointer;
         transition: all 0.2s ease;
         padding: 8px 4px;
@@ -1533,7 +1533,7 @@ body {
     }
     
     .nav-btn.active {
-        color: var(--accent-blue);
+        color: white;
     }
     
     .nav-btn-primary {
@@ -1602,15 +1602,16 @@ body {
     }
     
     .nav-icon-svg {
-        width: 28px;
-        height: 28px;
-        fill: white;
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
         transition: all 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
     }
     
     .nav-btn-primary .nav-icon-svg {
         width: 32px;
         height: 32px;
+        fill: white;
     }
     
     .nav-btn-primary.running .nav-icon-svg {

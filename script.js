@@ -1441,10 +1441,8 @@ function updateMobileGameUI() {
     if (mobileStartBtn) {
         if (isGameRunning) {
             mobileStartBtn.classList.add('running');
-            mobileStartBtn.querySelector('.nav-icon').textContent = '⏹️';
         } else {
             mobileStartBtn.classList.remove('running');
-            mobileStartBtn.querySelector('.nav-icon').textContent = '▶️';
         }
     }
     
@@ -1517,7 +1515,6 @@ function initializeMobileEventListeners() {
                 stopGame();
                 // Update button immediately
                 mobileStartBtn.classList.remove('running');
-                mobileStartBtn.querySelector('.nav-icon').textContent = '▶️';
             } else {
                 mobileStartDraw();
                 // Button will be updated by updateMobileGameUI in mobileStartDraw

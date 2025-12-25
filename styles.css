@@ -1545,6 +1545,8 @@ body {
         margin-top: -20px;
         box-shadow: 0 4px 15px rgba(79, 70, 229, 0.5);
         color: white;
+        transition: all 0.3s ease;
+        position: relative;
     }
     
     .nav-btn-primary:active {
@@ -1555,6 +1557,16 @@ body {
         background: linear-gradient(135deg, #ef4444, #dc2626);
         box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
         animation: mobileHeartbeat 1.2s ease-in-out infinite;
+        border-radius: 0;
+        clip-path: path('M30,53.375l-3.625-3.3C13.5,38.4,5,30.7,5,21.25 C5,13.55,11.05,7.5,18.75,7.5c4.35,0,8.525,2.025,11.25,5.225C32.725,9.525,37.9,7.5,41.25,7.5 C48.95,7.5,55,13.55,55,21.25c0,9.45-8.5,17.15-21.375,28.85L30,53.375z');
+        transform: scale(1);
+        width: 60px;
+        height: 60px;
+        flex: 0 0 60px;
+    }
+    
+    .nav-btn-primary.running:active {
+        transform: scale(0.9);
     }
     
     @keyframes mobileHeartbeat {
@@ -1589,8 +1601,26 @@ body {
         line-height: 1;
     }
     
-    .nav-btn-primary .nav-icon {
-        font-size: 1.75rem;
+    .nav-icon-svg {
+        width: 28px;
+        height: 28px;
+        fill: white;
+        transition: all 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .nav-btn-primary .nav-icon-svg {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .nav-btn-primary.running .nav-icon-svg {
+        opacity: 0;
+        visibility: hidden;
+    }
+    
+    .nav-btn-primary .nav-icon-svg path,
+    .nav-btn-primary .nav-icon-svg polygon {
+        transition: all 0.3s ease;
     }
     
     .nav-label {

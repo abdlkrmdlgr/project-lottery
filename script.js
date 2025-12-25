@@ -14,6 +14,14 @@ let GRID_COLS = 16; // Initial: 16 columns (16:9 ratio)
 let TOTAL_CELLS = GRID_ROWS * GRID_COLS; // 144 cells
 let gameSpeed = 1; // Game speed multiplier (0.5x - 5x)
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+    PARTICIPANT_LIST: 'lottery_participant_list',
+    WINNER_COUNT: 'lottery_winner_count',
+    GRID_SIZE: 'lottery_grid_size',
+    SPEED: 'lottery_speed'
+};
+
 // DOM Elements
 const namesInput = document.getElementById('names-input');
 const winnerCountInput = document.getElementById('winner-count');
@@ -24,7 +32,6 @@ const increaseBtn = document.getElementById('increase-btn');
 const decreaseBtn = document.getElementById('decrease-btn');
 const startBtn = document.getElementById('start-btn');
 const resetBtn = document.getElementById('reset-btn');
-const copyBtn = document.getElementById('copy-btn');
 const nameCountSpan = document.getElementById('name-count');
 const charCountSpan = document.getElementById('char-count');
 const winnersList = document.getElementById('winners-list');
@@ -34,11 +41,72 @@ const elapsedTimeSpan = document.getElementById('elapsed-time');
 const completionOverlay = document.getElementById('completion-overlay');
 const overlayCopyBtn = document.getElementById('overlay-copy-btn');
 const overlayRestartBtn = document.getElementById('overlay-restart-btn');
+const overlayShowListBtn = document.getElementById('overlay-show-list-btn');
+const winnersModalOverlay = document.getElementById('winners-modal-overlay');
+const winnersModalList = document.getElementById('winners-modal-list');
+const winnersModalCopyBtn = document.getElementById('winners-modal-copy-btn');
+const winnersModalCloseBtn = document.getElementById('winners-modal-close-btn');
 const modalOverlay = document.getElementById('modal-overlay');
 const modalIcon = document.getElementById('modal-icon');
 const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalOkBtn = document.getElementById('modal-ok-btn');
+
+// LocalStorage Functions
+function saveParticipantList() {
+    const text = namesInput.value.trim();
+    if (text) {
+        localStorage.setItem(STORAGE_KEYS.PARTICIPANT_LIST, text);
+    }
+}
+
+function loadParticipantList() {
+    const savedList = localStorage.getItem(STORAGE_KEYS.PARTICIPANT_LIST);
+    if (savedList && namesInput) {
+        namesInput.value = savedList;
+        updateCounters();
+        updateStepperButtons();
+    }
+}
+
+function saveSettings() {
+    // Save winner count
+    if (winnerCountInput) {
+        localStorage.setItem(STORAGE_KEYS.WINNER_COUNT, winnerCountInput.value);
+    }
+    
+    // Save grid size
+    if (gridSizeSelect) {
+        localStorage.setItem(STORAGE_KEYS.GRID_SIZE, gridSizeSelect.value);
+    }
+    
+    // Save speed
+    if (speedSlider) {
+        localStorage.setItem(STORAGE_KEYS.SPEED, speedSlider.value);
+    }
+}
+
+function loadSettings() {
+    // Load winner count
+    const savedWinnerCount = localStorage.getItem(STORAGE_KEYS.WINNER_COUNT);
+    if (savedWinnerCount && winnerCountInput) {
+        winnerCountInput.value = savedWinnerCount;
+    }
+    
+    // Load grid size
+    const savedGridSize = localStorage.getItem(STORAGE_KEYS.GRID_SIZE);
+    if (savedGridSize && gridSizeSelect) {
+        gridSizeSelect.value = savedGridSize;
+        handleGridSizeChange();
+    }
+    
+    // Load speed
+    const savedSpeed = localStorage.getItem(STORAGE_KEYS.SPEED);
+    if (savedSpeed && speedSlider) {
+        speedSlider.value = savedSpeed;
+        handleSpeedChange();
+    }
+}
 
 // Parse names from textarea
 function parseNames(text) {
@@ -383,7 +451,6 @@ function disableHeaderControls() {
     increaseBtn.disabled = true;
     decreaseBtn.disabled = true;
     resetBtn.disabled = true;
-    copyBtn.disabled = true;
     namesInput.disabled = true;
 }
 
@@ -395,7 +462,6 @@ function enableHeaderControls() {
     increaseBtn.disabled = false;
     decreaseBtn.disabled = false;
     resetBtn.disabled = false;
-    copyBtn.disabled = false;
     namesInput.disabled = false;
 }
 
@@ -518,6 +584,10 @@ async function startDraw() {
         return;
     }
     
+    // Save participant list and settings to localStorage
+    saveParticipantList();
+    saveSettings();
+    
     // Hide overlay
     hideCompletionOverlay();
     
@@ -560,9 +630,17 @@ function resetDraw() {
     hideCompletionOverlay();
     winners = [];
     winnersList.innerHTML = '<p class="empty-message">Draw results will appear here...</p>';
-    namesInput.value = '';
-    winnerCountInput.value = '3';
+    // Don't clear namesInput.value - keep participant list
+    // Don't reset winnerCountInput.value - keep winner count setting
+    
+    // Recreate grid with existing names if any
+    const text = namesInput.value;
+    const names = parseNames(text);
     createGrid();
+    if (names.length > 0) {
+        placeNamesOnGrid(names);
+    }
+    
     updateCounters();
     updateStepperButtons();
     
@@ -675,6 +753,76 @@ function restartFromOverlay() {
     resetDraw();
 }
 
+// Show winners list modal
+function showWinnersModal() {
+    if (!winnersModalOverlay || !winnersModalList) return;
+    
+    // Clear previous content
+    winnersModalList.innerHTML = '';
+    
+    if (winners.length === 0) {
+        winnersModalList.innerHTML = '<p class="empty-message">No winners to display.</p>';
+    } else {
+        // Create winners list
+        winners.forEach((winner, index) => {
+            const winnerItem = document.createElement('div');
+            winnerItem.className = 'winner-modal-item';
+            
+            const number = document.createElement('span');
+            number.className = 'winner-modal-number';
+            number.textContent = `${winner.index}.`;
+            
+            const name = document.createElement('span');
+            name.className = 'winner-modal-name';
+            name.textContent = winner.name;
+            
+            winnerItem.appendChild(number);
+            winnerItem.appendChild(name);
+            winnersModalList.appendChild(winnerItem);
+        });
+    }
+    
+    // Show modal
+    winnersModalOverlay.classList.add('show');
+    
+    // Focus close button for accessibility
+    if (winnersModalCloseBtn) {
+        setTimeout(() => winnersModalCloseBtn.focus(), 100);
+    }
+}
+
+// Hide winners list modal
+function hideWinnersModal() {
+    if (winnersModalOverlay) {
+        winnersModalOverlay.classList.remove('show');
+    }
+}
+
+// Copy winners list from modal
+function copyWinnersFromModal() {
+    if (winners.length === 0) {
+        showModal('No Results', 'No results to copy!', 'warning');
+        return;
+    }
+    
+    const text = winners.map(w => `${w.index}. ${w.name}`).join('\n');
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Visual feedback
+        const originalText = winnersModalCopyBtn.textContent;
+        winnersModalCopyBtn.textContent = '✓ Copied!';
+        winnersModalCopyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        
+        setTimeout(() => {
+            winnersModalCopyBtn.textContent = originalText;
+            winnersModalCopyBtn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Copy error:', err);
+        showModal('Copy Failed', 'Failed to copy results to clipboard. Please try again.', 'error');
+    });
+}
+
 // Update counters
 function updateCounters() {
     const text = namesInput.value;
@@ -765,22 +913,44 @@ function handleSpeedChange() {
 namesInput.addEventListener('input', () => {
     updateCounters();
     updateStepperButtons();
+    // Save participant list when typing
+    saveParticipantList();
 });
 
-winnerCountInput.addEventListener('input', updateStepperButtons);
-winnerCountInput.addEventListener('change', updateStepperButtons);
+winnerCountInput.addEventListener('input', () => {
+    updateStepperButtons();
+    saveSettings();
+});
+winnerCountInput.addEventListener('change', () => {
+    updateStepperButtons();
+    saveSettings();
+});
 
-gridSizeSelect.addEventListener('change', handleGridSizeChange);
+gridSizeSelect.addEventListener('change', () => {
+    handleGridSizeChange();
+    saveSettings();
+});
 
-speedSlider.addEventListener('input', handleSpeedChange);
-speedSlider.addEventListener('change', handleSpeedChange);
+speedSlider.addEventListener('input', () => {
+    handleSpeedChange();
+    saveSettings();
+});
+speedSlider.addEventListener('change', () => {
+    handleSpeedChange();
+    saveSettings();
+});
 
-increaseBtn.addEventListener('click', increaseWinnerCount);
-decreaseBtn.addEventListener('click', decreaseWinnerCount);
+increaseBtn.addEventListener('click', () => {
+    increaseWinnerCount();
+    saveSettings();
+});
+decreaseBtn.addEventListener('click', () => {
+    decreaseWinnerCount();
+    saveSettings();
+});
 
 startBtn.addEventListener('click', startDraw);
 resetBtn.addEventListener('click', resetDraw);
-copyBtn.addEventListener('click', copyResults);
 
 // Event listeners for overlay buttons (after DOM is loaded)
 if (document.readyState === 'loading') {
@@ -792,6 +962,27 @@ if (document.readyState === 'loading') {
         }
         if (overlayRestartBtnEl) {
             overlayRestartBtnEl.addEventListener('click', restartFromOverlay);
+        }
+        
+        // Show List button event listener
+        const overlayShowListBtnEl = document.getElementById('overlay-show-list-btn');
+        if (overlayShowListBtnEl) {
+            overlayShowListBtnEl.addEventListener('click', showWinnersModal);
+        }
+        
+        // Winners modal event listeners
+        if (winnersModalCopyBtn) {
+            winnersModalCopyBtn.addEventListener('click', copyWinnersFromModal);
+        }
+        if (winnersModalCloseBtn) {
+            winnersModalCloseBtn.addEventListener('click', hideWinnersModal);
+        }
+        if (winnersModalOverlay) {
+            winnersModalOverlay.addEventListener('click', (e) => {
+                if (e.target === winnersModalOverlay) {
+                    hideWinnersModal();
+                }
+            });
         }
         
         // Modal event listeners
@@ -807,8 +998,13 @@ if (document.readyState === 'loading') {
         }
         // Close modal on Escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('show')) {
-                hideModal();
+            if (e.key === 'Escape') {
+                if (modalOverlay && modalOverlay.classList.contains('show')) {
+                    hideModal();
+                }
+                if (winnersModalOverlay && winnersModalOverlay.classList.contains('show')) {
+                    hideWinnersModal();
+                }
             }
         });
     });
@@ -818,6 +1014,26 @@ if (document.readyState === 'loading') {
     }
     if (overlayRestartBtn) {
         overlayRestartBtn.addEventListener('click', restartFromOverlay);
+    }
+    
+    // Show List button event listener
+    if (overlayShowListBtn) {
+        overlayShowListBtn.addEventListener('click', showWinnersModal);
+    }
+    
+    // Winners modal event listeners
+    if (winnersModalCopyBtn) {
+        winnersModalCopyBtn.addEventListener('click', copyWinnersFromModal);
+    }
+    if (winnersModalCloseBtn) {
+        winnersModalCloseBtn.addEventListener('click', hideWinnersModal);
+    }
+    if (winnersModalOverlay) {
+        winnersModalOverlay.addEventListener('click', (e) => {
+            if (e.target === winnersModalOverlay) {
+                hideWinnersModal();
+            }
+        });
     }
     
     // Modal event listeners
@@ -833,22 +1049,31 @@ if (document.readyState === 'loading') {
     }
     // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('show')) {
-            hideModal();
+        if (e.key === 'Escape') {
+            if (modalOverlay && modalOverlay.classList.contains('show')) {
+                hideModal();
+            }
+            if (winnersModalOverlay && winnersModalOverlay.classList.contains('show')) {
+                hideWinnersModal();
+            }
         }
     });
 }
 
 // Initialize
 function initializeApp() {
-    // Set initial grid size
+    // Load saved settings and participant list first
+    loadSettings();
+    loadParticipantList();
+    
+    // Set initial grid size (after loading settings)
     const initialSize = gridSizeSelect.value;
     updateGridSize(initialSize);
     createGrid();
     updateCounters();
     updateStepperButtons();
     
-    // Set speed slider initial value
+    // Set speed slider initial value (after loading settings)
     if (speedSlider && speedValue) {
         gameSpeed = parseFloat(speedSlider.value);
         speedValue.textContent = `${gameSpeed}x`;

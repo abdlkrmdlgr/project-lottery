@@ -59,7 +59,6 @@
                 <div class="button-group">
                     <button id="start-btn" class="btn btn-primary" disabled>Start Draw</button>
                     <button id="reset-btn" class="btn btn-secondary">Reset</button>
-                    <button id="copy-btn" class="btn btn-secondary">Copy Results</button>
                 </div>
             </div>
         </div>
@@ -125,7 +124,23 @@
             <p class="overlay-message">All winners have been selected.</p>
             <div class="overlay-buttons">
                 <button id="overlay-copy-btn" class="btn btn-primary">Copy Results</button>
+                <button id="overlay-show-list-btn" class="btn btn-secondary">Show List</button>
                 <button id="overlay-restart-btn" class="btn btn-secondary">Restart</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Winners List Modal -->
+    <div id="winners-modal-overlay" class="modal-overlay">
+        <div class="modal-content winners-modal">
+            <div class="modal-icon" id="winners-modal-icon">🏆</div>
+            <h2 class="modal-title" id="winners-modal-title">Winners List</h2>
+            <div class="winners-modal-list" id="winners-modal-list">
+                <!-- Winners will be populated here -->
+            </div>
+            <div class="modal-buttons">
+                <button id="winners-modal-copy-btn" class="btn btn-primary">Copy List</button>
+                <button id="winners-modal-close-btn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>

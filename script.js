@@ -189,29 +189,42 @@ function placeNamesOnGrid(names) {
 
 // Initialize snake
 function initSnake() {
-    // Start snake from top-left corner
+    // Start snake from top-left corner with 3 segments
     const startPos = 0;
-    snake = [startPos];
+    snake = [
+        startPos,           // Head (position 0)
+        startPos + 1,       // Body segment 1 (position 1)
+        startPos + 2        // Body segment 2 (position 2)
+    ];
     
-    // Show snake head
+    // Set initial direction to right
+    snakeDirection = { x: 1, y: 0 };
+    
+    // Show snake
     updateSnakeDisplay();
 }
 
-// Update snake display
+// Update snake display - Optimized version
 function updateSnakeDisplay() {
-    // Clear previous snake display
-    gridCells.forEach(cell => {
-        cell.classList.remove('snake', 'snake-head');
-    });
-    
-    // Show snake
-    snake.forEach((pos, index) => {
-        const cell = gridCells[pos];
-        if (index === 0) {
-            cell.classList.add('snake-head');
-        } else {
-            cell.classList.add('snake');
-        }
+    // Use requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+        // Clear previous snake display only for changed cells
+        gridCells.forEach(cell => {
+            if (cell.classList.contains('snake') || cell.classList.contains('snake-head')) {
+                cell.classList.remove('snake', 'snake-head');
+            }
+        });
+        
+        // Show snake with batch DOM updates
+        const fragment = document.createDocumentFragment();
+        snake.forEach((pos, index) => {
+            const cell = gridCells[pos];
+            if (index === 0) {
+                cell.classList.add('snake-head');
+            } else {
+                cell.classList.add('snake');
+            }
+        });
     });
 }
 
@@ -465,9 +478,11 @@ function enableHeaderControls() {
     namesInput.disabled = false;
 }
 
-// Stop game
+// Stop game - Enhanced cleanup
 function stopGame() {
     isGameRunning = false;
+    
+    // Clear all intervals with proper cleanup
     if (gameInterval) {
         clearInterval(gameInterval);
         gameInterval = null;
@@ -487,7 +502,8 @@ function stopGame() {
     // Show overlay if draw completed
     const targetCount = parseInt(winnerCountInput.value) || 1;
     if (winners.length >= targetCount && winners.length > 0) {
-        showCompletionOverlay();
+        // Use setTimeout to prevent blocking
+        setTimeout(() => showCompletionOverlay(), 100);
     }
     
     gameStartTime = null;
@@ -523,37 +539,43 @@ function startElapsedTimeUpdate() {
     }, 1000); // Update every second
 }
 
-// Add to winners list
+// Add to winners list - Optimized version
 function addToWinnersList(name, index) {
     winners.push({ name, index: index + 1 });
     
     // Update remaining winners count
     updateRemainingWinners();
     
-    // Clear empty message
-    const emptyMsg = winnersList.querySelector('.empty-message');
-    if (emptyMsg) {
-        emptyMsg.remove();
-    }
-    
-    // Create winner card
-    const card = document.createElement('div');
-    card.className = 'winner-card';
-    
-    const number = document.createElement('div');
-    number.className = 'winner-number';
-    number.textContent = `${index + 1}.`;
-    
-    const nameEl = document.createElement('div');
-    nameEl.className = 'winner-name';
-    nameEl.textContent = name;
-    
-    card.appendChild(number);
-    card.appendChild(nameEl);
-    winnersList.appendChild(card);
-    
-    // Scroll to bottom
-    winnersList.scrollTop = winnersList.scrollHeight;
+    // Use requestAnimationFrame for smooth DOM updates
+    requestAnimationFrame(() => {
+        // Clear empty message
+        const emptyMsg = winnersList.querySelector('.empty-message');
+        if (emptyMsg) {
+            emptyMsg.remove();
+        }
+        
+        // Create winner card
+        const card = document.createElement('div');
+        card.className = 'winner-card';
+        
+        const number = document.createElement('div');
+        number.className = 'winner-number';
+        number.textContent = `${index + 1}.`;
+        
+        const nameEl = document.createElement('div');
+        nameEl.className = 'winner-name';
+        nameEl.textContent = name;
+        
+        card.appendChild(number);
+        card.appendChild(nameEl);
+        winnersList.appendChild(card);
+        
+        // Smooth scroll to bottom
+        winnersList.scrollTo({
+            top: winnersList.scrollHeight,
+            behavior: 'smooth'
+        });
+    });
 }
 
 // Start draw
@@ -653,7 +675,7 @@ function resetDraw() {
 }
 
 // Copy results
-function copyResults() {
+function copyResults(buttonElement = null) {
     if (winners.length === 0) {
         showModal('No Results', 'No results to copy!', 'warning');
         return;
@@ -662,15 +684,20 @@ function copyResults() {
     const text = winners.map(w => `${w.index}. ${w.name}`).join('\n');
     
     navigator.clipboard.writeText(text).then(() => {
-        // Visual feedback
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✓ Copied!';
-        copyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        
-        setTimeout(() => {
-            copyBtn.textContent = originalText;
-            copyBtn.style.background = '';
-        }, 2000);
+        // Visual feedback - use provided button or find a default one
+        const targetBtn = buttonElement || document.querySelector('.btn-primary');
+        if (targetBtn) {
+            const originalText = targetBtn.textContent;
+            const originalBackground = targetBtn.style.background;
+            
+            targetBtn.textContent = '✓ Copied!';
+            targetBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            
+            setTimeout(() => {
+                targetBtn.textContent = originalText;
+                targetBtn.style.background = originalBackground;
+            }, 2000);
+        }
     }).catch(err => {
         console.error('Copy error:', err);
         showModal('Copy Failed', 'Failed to copy results to clipboard. Please try again.', 'error');
@@ -733,24 +760,31 @@ function hideModal() {
 
 // Copy results from overlay
 function copyResultsFromOverlay() {
-    copyResults();
-    // Show feedback for overlay button too
-    if (overlayCopyBtn) {
-        const originalText = overlayCopyBtn.textContent;
-        overlayCopyBtn.textContent = '✓ Copied!';
-        overlayCopyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        
-        setTimeout(() => {
-            overlayCopyBtn.textContent = originalText;
-            overlayCopyBtn.style.background = '';
-        }, 2000);
-    }
+    copyResults(overlayCopyBtn);
 }
 
 // Restart from overlay
 function restartFromOverlay() {
     hideCompletionOverlay();
+    
+    // Reset first
     resetDraw();
+    
+    // Wait a moment for reset to complete, then start new draw
+    setTimeout(() => {
+        // Check if we have names to start a new draw
+        const text = namesInput.value;
+        const names = parseNames(text);
+        
+        if (names.length > 0) {
+            const count = parseInt(winnerCountInput.value) || 1;
+            
+            // Validate before starting
+            if (count <= names.length && count >= 1) {
+                startDraw();
+            }
+        }
+    }, 100);
 }
 
 // Show winners list modal

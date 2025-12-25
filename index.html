@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0e27">
     <title>Lottery System</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -116,31 +120,17 @@
         </aside>
     </main>
 
-    <!-- Draw Completed Overlay -->
+    <!-- Draw Completed Overlay with Winners List -->
     <div id="completion-overlay" class="completion-overlay">
-        <div class="overlay-content">
+        <div class="overlay-content overlay-with-list">
             <div class="overlay-icon">🎉</div>
             <h2 class="overlay-title">The Lucky Winner is Revealed!</h2>
-            <p class="overlay-message">All winners have been selected.</p>
-            <div class="overlay-buttons">
-                <button id="overlay-copy-btn" class="btn btn-primary">Copy Results</button>
-                <button id="overlay-show-list-btn" class="btn btn-secondary">Show List</button>
-                <button id="overlay-restart-btn" class="btn btn-secondary">Restart</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Winners List Modal -->
-    <div id="winners-modal-overlay" class="modal-overlay">
-        <div class="modal-content winners-modal">
-            <div class="modal-icon" id="winners-modal-icon">🏆</div>
-            <h2 class="modal-title" id="winners-modal-title">Winners List</h2>
-            <div class="winners-modal-list" id="winners-modal-list">
+            <div class="overlay-winners-list" id="overlay-winners-list">
                 <!-- Winners will be populated here -->
             </div>
-            <div class="modal-buttons">
-                <button id="winners-modal-copy-btn" class="btn btn-primary">Copy List</button>
-                <button id="winners-modal-close-btn" class="btn btn-secondary">Close</button>
+            <div class="overlay-buttons">
+                <button id="overlay-copy-btn" class="btn btn-primary">Copy List</button>
+                <button id="overlay-close-btn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>
@@ -155,6 +145,109 @@
                 <button id="modal-ok-btn" class="btn btn-primary">OK</button>
             </div>
         </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <button class="nav-btn" id="mobile-names-btn" aria-label="Attendees">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">Attendees</span>
+        </button>
+        <button class="nav-btn nav-btn-primary" id="mobile-start-btn" aria-label="Start Draw">
+            <span class="nav-icon">▶️</span>
+            <span class="nav-label">Start</span>
+        </button>
+        <button class="nav-btn" id="mobile-winners-btn" aria-label="Winners">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-label">Winners</span>
+        </button>
+        <button class="nav-btn" id="mobile-settings-btn" aria-label="Settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Mobile Names Panel -->
+    <div class="mobile-panel" id="mobile-names-panel">
+        <div class="mobile-panel-header">
+            <h3 class="mobile-panel-title">👥 Attendees</h3>
+            <button class="mobile-panel-close" id="close-names-panel" aria-label="Close">×</button>
+        </div>
+        <div class="mobile-panel-content">
+            <label class="mobile-label">Names (separated by newlines or commas)</label>
+            <textarea 
+                id="mobile-names-input" 
+                class="mobile-textarea" 
+                placeholder="Example:&#10;John Smith&#10;Jane Doe&#10;Bob Johnson"
+            ></textarea>
+            <div class="mobile-counter">
+                <span id="mobile-name-count">0</span> names, 
+                <span id="mobile-char-count">0</span> characters
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Settings Panel -->
+    <div class="mobile-panel" id="mobile-settings-panel">
+        <div class="mobile-panel-header">
+            <h3 class="mobile-panel-title">⚙️ Settings</h3>
+            <button class="mobile-panel-close" id="close-settings-panel" aria-label="Close">×</button>
+        </div>
+        <div class="mobile-panel-content">
+            <div class="mobile-setting-group">
+                <label class="mobile-label">Number of Winners</label>
+                <div class="mobile-stepper">
+                    <button type="button" class="mobile-stepper-btn" id="mobile-decrease-btn">−</button>
+                    <input type="number" id="mobile-winner-count" class="mobile-stepper-input" min="1" value="3">
+                    <button type="button" class="mobile-stepper-btn" id="mobile-increase-btn">+</button>
+                </div>
+            </div>
+            <div class="mobile-setting-group">
+                <label class="mobile-label">Grid Size</label>
+                <select id="mobile-grid-size" class="mobile-select">
+                    <option value="9x16">9x16</option>
+                    <option value="12x21">12x21</option>
+                    <option value="18x32">18x32</option>
+                    <option value="21x42">21x42</option>
+                </select>
+            </div>
+            <div class="mobile-setting-group">
+                <label class="mobile-label">Speed: <span id="mobile-speed-value">1x</span></label>
+                <input type="range" id="mobile-speed-slider" class="mobile-slider" min="0.5" max="5" step="0.5" value="1">
+            </div>
+            </div>
+    </div>
+
+    <!-- Mobile Winners Panel -->
+    <div class="mobile-panel" id="mobile-winners-panel">
+        <div class="mobile-panel-header">
+            <h3 class="mobile-panel-title">🏆 Winners</h3>
+            <button class="mobile-panel-close" id="close-winners-panel" aria-label="Close">×</button>
+        </div>
+        <div class="mobile-panel-content">
+            <div class="mobile-game-stats">
+                <div class="mobile-stat">
+                    <span class="mobile-stat-label">Remaining:</span>
+                    <span class="mobile-stat-value" id="mobile-remaining-winners">-</span>
+                </div>
+                <div class="mobile-stat">
+                    <span class="mobile-stat-label">Time:</span>
+                    <span class="mobile-stat-value" id="mobile-elapsed-time">00:00</span>
+                </div>
+            </div>
+            <div class="mobile-winners-list" id="mobile-winners-list">
+                <p class="empty-message">Draw results will appear here...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Panel Backdrop -->
+    <div class="mobile-panel-backdrop" id="mobile-panel-backdrop"></div>
+
+    <!-- Mobile Floating Stats (visible during game) -->
+    <div class="mobile-floating-stats" id="mobile-floating-stats">
+        <span class="floating-stat">🏆 <span id="floating-winners-count">0</span></span>
+        <span class="floating-stat">⏱️ <span id="floating-elapsed-time">00:00</span></span>
     </div>
 
     <script src="script.js"></script>

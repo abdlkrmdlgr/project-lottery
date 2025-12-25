@@ -40,12 +40,8 @@ const remainingWinnersSpan = document.getElementById('remaining-winners');
 const elapsedTimeSpan = document.getElementById('elapsed-time');
 const completionOverlay = document.getElementById('completion-overlay');
 const overlayCopyBtn = document.getElementById('overlay-copy-btn');
-const overlayRestartBtn = document.getElementById('overlay-restart-btn');
-const overlayShowListBtn = document.getElementById('overlay-show-list-btn');
-const winnersModalOverlay = document.getElementById('winners-modal-overlay');
-const winnersModalList = document.getElementById('winners-modal-list');
-const winnersModalCopyBtn = document.getElementById('winners-modal-copy-btn');
-const winnersModalCloseBtn = document.getElementById('winners-modal-close-btn');
+const overlayCloseBtn = document.getElementById('overlay-close-btn');
+const overlayWinnersList = document.getElementById('overlay-winners-list');
 const modalOverlay = document.getElementById('modal-overlay');
 const modalIcon = document.getElementById('modal-icon');
 const modalTitle = document.getElementById('modal-title');
@@ -108,6 +104,33 @@ function loadSettings() {
     }
 }
 
+// Check if mobile
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+// Convert desktop grid size to mobile (swap dimensions for portrait)
+function desktopToMobileGridSize(desktopSize) {
+    const mapping = {
+        '9x16': '16x9', 
+        '12x21': '21x12',
+        '18x32': '32x18',
+        '21x42': '42x21'
+    };
+    return mapping[desktopSize] || '9x16';
+}
+
+// Convert mobile grid size to desktop (swap dimensions for landscape)
+function mobileToDesktopGridSize(mobileSize) {
+    const mapping = {
+        '9x16': '16x9',
+        '12x21': '21x12',
+        '18x32': '32x18',
+        '21x42': '42x21'
+    };
+    return mapping[mobileSize] || '16x9';
+}
+
 // Parse names from textarea
 function parseNames(text) {
     if (!text || !text.trim()) return [];
@@ -144,6 +167,54 @@ function updateGridSize(size) {
     // Update CSS grid template
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    
+    // For mobile: set aspect ratio to keep cells square
+    if (isMobile()) {
+        updateMobileGridLayout(cols, rows);
+    }
+}
+
+// Update mobile grid layout to keep cells square
+function updateMobileGridLayout(cols, rows) {
+    if (!gridContainer) return;
+    
+    const visualizationContainer = document.getElementById('visualization-container');
+    if (!visualizationContainer) return;
+    
+    // Calculate available space
+    const containerRect = visualizationContainer.getBoundingClientRect();
+    const padding = 32; // 16px padding on each side
+    const gridPadding = 8; // padding inside grid container
+    const gridGap = cols > 30 ? 0 : 1; // gap between cells (0 for large grids)
+    
+    const availableWidth = containerRect.width - padding;
+    const availableHeight = containerRect.height - padding;
+    
+    // Account for gaps in total size calculation
+    const totalGapsWidth = gridGap * (cols - 1);
+    const totalGapsHeight = gridGap * (rows - 1);
+    
+    // Calculate cell size to fit and keep square (accounting for gaps and padding)
+    const maxCellWidth = Math.floor((availableWidth - gridPadding * 2 - totalGapsWidth) / cols);
+    const maxCellHeight = Math.floor((availableHeight - gridPadding * 2 - totalGapsHeight) / rows);
+    
+    // Use the smaller dimension to keep cells square
+    let cellSize = Math.min(maxCellWidth, maxCellHeight);
+    
+    // Ensure minimum cell size
+    cellSize = Math.max(cellSize, 3);
+    
+    // Calculate exact grid dimensions (cells + gaps + padding)
+    const gridWidth = (cellSize * cols) + totalGapsWidth + (gridPadding * 2);
+    const gridHeight = (cellSize * rows) + totalGapsHeight + (gridPadding * 2);
+    
+    // Apply fixed size grid with square cells
+    gridContainer.style.width = `${gridWidth}px`;
+    gridContainer.style.height = `${gridHeight}px`;
+    gridContainer.style.padding = `${gridPadding}px`;
+    gridContainer.style.gap = `${gridGap}px`;
+    gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
 }
 
 // Create grid
@@ -498,6 +569,7 @@ function stopGame() {
     // Restore start button
     startBtn.textContent = 'Start Draw';
     startBtn.disabled = false;
+    startBtn.classList.remove('running');
     
     // Show overlay if draw completed
     const targetCount = parseInt(winnerCountInput.value) || 1;
@@ -619,6 +691,7 @@ async function startDraw() {
     // Change start button to "Stop Draw" and keep it enabled
     startBtn.textContent = 'Stop Draw';
     startBtn.disabled = false;
+    startBtn.classList.add('running');
     
     // Clear previous winners
     winners = [];
@@ -704,9 +777,39 @@ function copyResults(buttonElement = null) {
     });
 }
 
+// Populate overlay winners list
+function populateOverlayWinnersList() {
+    if (!overlayWinnersList) return;
+    
+    overlayWinnersList.innerHTML = '';
+    
+    if (winners.length === 0) {
+        overlayWinnersList.innerHTML = '<p class="empty-message">No winners yet.</p>';
+        return;
+    }
+    
+    winners.forEach((winner) => {
+        const item = document.createElement('div');
+        item.className = 'overlay-winner-item';
+        
+        const number = document.createElement('span');
+        number.className = 'overlay-winner-number';
+        number.textContent = `${winner.index}.`;
+        
+        const name = document.createElement('span');
+        name.className = 'overlay-winner-name';
+        name.textContent = winner.name;
+        
+        item.appendChild(number);
+        item.appendChild(name);
+        overlayWinnersList.appendChild(item);
+    });
+}
+
 // Show overlay
 function showCompletionOverlay() {
     if (completionOverlay) {
+        populateOverlayWinnersList();
         completionOverlay.classList.add('show');
     }
 }
@@ -763,98 +866,9 @@ function copyResultsFromOverlay() {
     copyResults(overlayCopyBtn);
 }
 
-// Restart from overlay
-function restartFromOverlay() {
+// Close overlay
+function closeCompletionOverlay() {
     hideCompletionOverlay();
-    
-    // Reset first
-    resetDraw();
-    
-    // Wait a moment for reset to complete, then start new draw
-    setTimeout(() => {
-        // Check if we have names to start a new draw
-        const text = namesInput.value;
-        const names = parseNames(text);
-        
-        if (names.length > 0) {
-            const count = parseInt(winnerCountInput.value) || 1;
-            
-            // Validate before starting
-            if (count <= names.length && count >= 1) {
-                startDraw();
-            }
-        }
-    }, 100);
-}
-
-// Show winners list modal
-function showWinnersModal() {
-    if (!winnersModalOverlay || !winnersModalList) return;
-    
-    // Clear previous content
-    winnersModalList.innerHTML = '';
-    
-    if (winners.length === 0) {
-        winnersModalList.innerHTML = '<p class="empty-message">No winners to display.</p>';
-    } else {
-        // Create winners list
-        winners.forEach((winner, index) => {
-            const winnerItem = document.createElement('div');
-            winnerItem.className = 'winner-modal-item';
-            
-            const number = document.createElement('span');
-            number.className = 'winner-modal-number';
-            number.textContent = `${winner.index}.`;
-            
-            const name = document.createElement('span');
-            name.className = 'winner-modal-name';
-            name.textContent = winner.name;
-            
-            winnerItem.appendChild(number);
-            winnerItem.appendChild(name);
-            winnersModalList.appendChild(winnerItem);
-        });
-    }
-    
-    // Show modal
-    winnersModalOverlay.classList.add('show');
-    
-    // Focus close button for accessibility
-    if (winnersModalCloseBtn) {
-        setTimeout(() => winnersModalCloseBtn.focus(), 100);
-    }
-}
-
-// Hide winners list modal
-function hideWinnersModal() {
-    if (winnersModalOverlay) {
-        winnersModalOverlay.classList.remove('show');
-    }
-}
-
-// Copy winners list from modal
-function copyWinnersFromModal() {
-    if (winners.length === 0) {
-        showModal('No Results', 'No results to copy!', 'warning');
-        return;
-    }
-    
-    const text = winners.map(w => `${w.index}. ${w.name}`).join('\n');
-    
-    navigator.clipboard.writeText(text).then(() => {
-        // Visual feedback
-        const originalText = winnersModalCopyBtn.textContent;
-        winnersModalCopyBtn.textContent = '✓ Copied!';
-        winnersModalCopyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        
-        setTimeout(() => {
-            winnersModalCopyBtn.textContent = originalText;
-            winnersModalCopyBtn.style.background = '';
-        }, 2000);
-    }).catch(err => {
-        console.error('Copy error:', err);
-        showModal('Copy Failed', 'Failed to copy results to clipboard. Please try again.', 'error');
-    });
 }
 
 // Update counters
@@ -895,6 +909,13 @@ function handleGridSizeChange() {
         if (names.length > 0) {
             placeNamesOnGrid(names);
         }
+    }
+    
+    // Update mobile grid layout after grid is created
+    if (isMobile()) {
+        setTimeout(() => {
+            updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+        }, 50);
     }
 }
 
@@ -990,31 +1011,20 @@ resetBtn.addEventListener('click', resetDraw);
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         const overlayCopyBtnEl = document.getElementById('overlay-copy-btn');
-        const overlayRestartBtnEl = document.getElementById('overlay-restart-btn');
+        const overlayCloseBtnEl = document.getElementById('overlay-close-btn');
+        
         if (overlayCopyBtnEl) {
             overlayCopyBtnEl.addEventListener('click', copyResultsFromOverlay);
         }
-        if (overlayRestartBtnEl) {
-            overlayRestartBtnEl.addEventListener('click', restartFromOverlay);
+        if (overlayCloseBtnEl) {
+            overlayCloseBtnEl.addEventListener('click', closeCompletionOverlay);
         }
         
-        // Show List button event listener
-        const overlayShowListBtnEl = document.getElementById('overlay-show-list-btn');
-        if (overlayShowListBtnEl) {
-            overlayShowListBtnEl.addEventListener('click', showWinnersModal);
-        }
-        
-        // Winners modal event listeners
-        if (winnersModalCopyBtn) {
-            winnersModalCopyBtn.addEventListener('click', copyWinnersFromModal);
-        }
-        if (winnersModalCloseBtn) {
-            winnersModalCloseBtn.addEventListener('click', hideWinnersModal);
-        }
-        if (winnersModalOverlay) {
-            winnersModalOverlay.addEventListener('click', (e) => {
-                if (e.target === winnersModalOverlay) {
-                    hideWinnersModal();
+        // Close overlay on backdrop click
+        if (completionOverlay) {
+            completionOverlay.addEventListener('click', (e) => {
+                if (e.target === completionOverlay) {
+                    closeCompletionOverlay();
                 }
             });
         }
@@ -1036,8 +1046,8 @@ if (document.readyState === 'loading') {
                 if (modalOverlay && modalOverlay.classList.contains('show')) {
                     hideModal();
                 }
-                if (winnersModalOverlay && winnersModalOverlay.classList.contains('show')) {
-                    hideWinnersModal();
+                if (completionOverlay && completionOverlay.classList.contains('show')) {
+                    closeCompletionOverlay();
                 }
             }
         });
@@ -1046,26 +1056,15 @@ if (document.readyState === 'loading') {
     if (overlayCopyBtn) {
         overlayCopyBtn.addEventListener('click', copyResultsFromOverlay);
     }
-    if (overlayRestartBtn) {
-        overlayRestartBtn.addEventListener('click', restartFromOverlay);
+    if (overlayCloseBtn) {
+        overlayCloseBtn.addEventListener('click', closeCompletionOverlay);
     }
     
-    // Show List button event listener
-    if (overlayShowListBtn) {
-        overlayShowListBtn.addEventListener('click', showWinnersModal);
-    }
-    
-    // Winners modal event listeners
-    if (winnersModalCopyBtn) {
-        winnersModalCopyBtn.addEventListener('click', copyWinnersFromModal);
-    }
-    if (winnersModalCloseBtn) {
-        winnersModalCloseBtn.addEventListener('click', hideWinnersModal);
-    }
-    if (winnersModalOverlay) {
-        winnersModalOverlay.addEventListener('click', (e) => {
-            if (e.target === winnersModalOverlay) {
-                hideWinnersModal();
+    // Close overlay on backdrop click
+    if (completionOverlay) {
+        completionOverlay.addEventListener('click', (e) => {
+            if (e.target === completionOverlay) {
+                closeCompletionOverlay();
             }
         });
     }
@@ -1087,8 +1086,8 @@ if (document.readyState === 'loading') {
             if (modalOverlay && modalOverlay.classList.contains('show')) {
                 hideModal();
             }
-            if (winnersModalOverlay && winnersModalOverlay.classList.contains('show')) {
-                hideWinnersModal();
+            if (completionOverlay && completionOverlay.classList.contains('show')) {
+                closeCompletionOverlay();
             }
         }
     });
@@ -1100,9 +1099,23 @@ function initializeApp() {
     loadSettings();
     loadParticipantList();
     
-    // Set initial grid size (after loading settings)
-    const initialSize = gridSizeSelect.value;
-    updateGridSize(initialSize);
+    // Set initial grid size based on device
+    if (isMobile()) {
+        // For mobile: use portrait grid size
+        const desktopSize = gridSizeSelect.value;
+        const mobileSize = desktopToMobileGridSize(desktopSize);
+        const [cols, rows] = mobileSize.split('x').map(Number);
+        GRID_COLS = cols;
+        GRID_ROWS = rows;
+        TOTAL_CELLS = cols * rows;
+        gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    } else {
+        // For desktop: use landscape grid size
+        const initialSize = gridSizeSelect.value;
+        updateGridSize(initialSize);
+    }
+    
     createGrid();
     updateCounters();
     updateStepperButtons();
@@ -1114,9 +1127,630 @@ function initializeApp() {
     }
 }
 
+// ============================================
+// MOBILE FUNCTIONALITY
+// ============================================
+
+// Mobile DOM Elements
+const mobileNamesBtn = document.getElementById('mobile-names-btn');
+const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+const mobileWinnersBtn = document.getElementById('mobile-winners-btn');
+const mobileStartBtn = document.getElementById('mobile-start-btn');
+const mobileNamesPanel = document.getElementById('mobile-names-panel');
+const mobileSettingsPanel = document.getElementById('mobile-settings-panel');
+const mobileWinnersPanel = document.getElementById('mobile-winners-panel');
+const mobilePanelBackdrop = document.getElementById('mobile-panel-backdrop');
+const mobileFloatingStats = document.getElementById('mobile-floating-stats');
+
+// Mobile input elements
+const mobileNamesInput = document.getElementById('mobile-names-input');
+const mobileNameCount = document.getElementById('mobile-name-count');
+const mobileCharCount = document.getElementById('mobile-char-count');
+const mobileWinnerCount = document.getElementById('mobile-winner-count');
+const mobileGridSize = document.getElementById('mobile-grid-size');
+const mobileSpeedSlider = document.getElementById('mobile-speed-slider');
+const mobileSpeedValue = document.getElementById('mobile-speed-value');
+const mobileIncreaseBtn = document.getElementById('mobile-increase-btn');
+const mobileDecreaseBtn = document.getElementById('mobile-decrease-btn');
+const mobileResetBtn = document.getElementById('mobile-reset-btn');
+const mobileWinnersList = document.getElementById('mobile-winners-list');
+const mobileRemainingWinners = document.getElementById('mobile-remaining-winners');
+const mobileElapsedTime = document.getElementById('mobile-elapsed-time');
+const floatingWinnersCount = document.getElementById('floating-winners-count');
+const floatingElapsedTime = document.getElementById('floating-elapsed-time');
+
+// Close panel buttons
+const closeNamesPanel = document.getElementById('close-names-panel');
+const closeSettingsPanel = document.getElementById('close-settings-panel');
+const closeWinnersPanel = document.getElementById('close-winners-panel');
+
+// Open mobile panel
+function openMobilePanel(panel) {
+    closeAllMobilePanels();
+    if (panel) {
+        panel.classList.add('open');
+        mobilePanelBackdrop.classList.add('show');
+    }
+}
+
+// Close all mobile panels
+function closeAllMobilePanels() {
+    [mobileNamesPanel, mobileSettingsPanel, mobileWinnersPanel].forEach(panel => {
+        if (panel) panel.classList.remove('open');
+    });
+    if (mobilePanelBackdrop) mobilePanelBackdrop.classList.remove('show');
+}
+
+// Sync desktop to mobile
+function syncDesktopToMobile() {
+    if (mobileNamesInput && namesInput) {
+        mobileNamesInput.value = namesInput.value;
+        updateMobileCounters();
+    }
+    if (mobileWinnerCount && winnerCountInput) {
+        mobileWinnerCount.value = winnerCountInput.value;
+    }
+    if (mobileGridSize && gridSizeSelect) {
+        // Convert desktop size to mobile (portrait) size
+        mobileGridSize.value = desktopToMobileGridSize(gridSizeSelect.value);
+    }
+    if (mobileSpeedSlider && speedSlider) {
+        mobileSpeedSlider.value = speedSlider.value;
+        if (mobileSpeedValue) {
+            mobileSpeedValue.textContent = `${speedSlider.value}x`;
+        }
+    }
+    updateMobileStepperButtons();
+}
+
+// Sync mobile to desktop
+function syncMobileToDesktop() {
+    if (namesInput && mobileNamesInput) {
+        namesInput.value = mobileNamesInput.value;
+        updateCounters();
+    }
+    if (winnerCountInput && mobileWinnerCount) {
+        winnerCountInput.value = mobileWinnerCount.value;
+        updateStepperButtons();
+    }
+    if (gridSizeSelect && mobileGridSize) {
+        // Convert mobile size to desktop (landscape) size
+        gridSizeSelect.value = mobileToDesktopGridSize(mobileGridSize.value);
+        handleGridSizeChange();
+    }
+    if (speedSlider && mobileSpeedSlider) {
+        speedSlider.value = mobileSpeedSlider.value;
+        handleSpeedChange();
+    }
+}
+
+// Update mobile counters
+function updateMobileCounters() {
+    if (!mobileNamesInput || !mobileNameCount || !mobileCharCount) return;
+    
+    const text = mobileNamesInput.value;
+    const names = parseNames(text);
+    
+    mobileNameCount.textContent = names.length;
+    mobileCharCount.textContent = text.length;
+}
+
+// Update mobile stepper buttons
+function updateMobileStepperButtons() {
+    if (!mobileWinnerCount || !mobileDecreaseBtn || !mobileIncreaseBtn) return;
+    
+    const currentValue = parseInt(mobileWinnerCount.value) || 1;
+    const minValue = 1;
+    const namesText = mobileNamesInput ? mobileNamesInput.value : '';
+    const names = parseNames(namesText);
+    const maxValue = names.length > 0 ? names.length : 999;
+    
+    mobileDecreaseBtn.disabled = currentValue <= minValue;
+    mobileIncreaseBtn.disabled = currentValue >= maxValue;
+}
+
+// Mobile start/stop draw
+function mobileStartDraw() {
+    // Sync names and settings but NOT grid size (keep mobile portrait grid)
+    if (namesInput && mobileNamesInput) {
+        namesInput.value = mobileNamesInput.value;
+        updateCounters();
+    }
+    if (winnerCountInput && mobileWinnerCount) {
+        winnerCountInput.value = mobileWinnerCount.value;
+        updateStepperButtons();
+    }
+    if (speedSlider && mobileSpeedSlider) {
+        speedSlider.value = mobileSpeedSlider.value;
+        handleSpeedChange();
+    }
+    
+    // Apply mobile grid size directly (portrait) - don't convert to desktop
+    if (mobileGridSize) {
+        const mobileSize = mobileGridSize.value;
+        const [cols, rows] = mobileSize.split('x').map(Number);
+        GRID_COLS = cols;
+        GRID_ROWS = rows;
+        TOTAL_CELLS = cols * rows;
+        
+        gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    }
+    
+    closeAllMobilePanels();
+    
+    // Start draw with current mobile settings
+    const text = mobileNamesInput ? mobileNamesInput.value : namesInput.value;
+    const names = parseNames(text);
+    
+    if (names.length === 0) {
+        showModal('No Names Entered', 'Please enter at least one name!', 'warning');
+        return;
+    }
+    
+    const count = parseInt(mobileWinnerCount ? mobileWinnerCount.value : winnerCountInput.value) || 1;
+    
+    if (count > names.length) {
+        showModal('Invalid Winner Count', `Number of winners (${count}) cannot be greater than total number of names (${names.length})!`, 'error');
+        return;
+    }
+    
+    if (count < 1) {
+        showModal('Invalid Winner Count', 'Number of winners must be at least 1!', 'error');
+        return;
+    }
+    
+    // Save settings
+    saveParticipantList();
+    saveSettings();
+    
+    // Hide overlay
+    hideCompletionOverlay();
+    
+    // Disable header controls
+    disableHeaderControls();
+    
+    // Change start button
+    startBtn.textContent = 'Stop Draw';
+    startBtn.disabled = false;
+    
+    // Clear previous winners
+    winners = [];
+    winnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
+    if (mobileWinnersList) {
+        mobileWinnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
+    }
+    
+    // Reset statistics
+    remainingWinnersSpan.textContent = count;
+    elapsedTimeSpan.textContent = '00:00';
+    
+    // Start snake game directly (bypassing startDraw to avoid grid size change)
+    startGame(names, count);
+    
+    // Update mobile UI immediately after game starts
+    updateMobileGameUI();
+    
+    // Update mobile grid layout after game starts
+    setTimeout(() => {
+        updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+    }, 50);
+}
+
+// Disable/enable mobile controls during game
+function updateMobileControlsState() {
+    const disabled = isGameRunning;
+    
+    // Disable inputs that shouldn't change during game
+    if (mobileNamesInput) mobileNamesInput.disabled = disabled;
+    if (mobileWinnerCount) mobileWinnerCount.disabled = disabled;
+    if (mobileGridSize) mobileGridSize.disabled = disabled;
+    if (mobileIncreaseBtn) mobileIncreaseBtn.disabled = disabled;
+    if (mobileDecreaseBtn) mobileDecreaseBtn.disabled = disabled;
+    if (mobileResetBtn) mobileResetBtn.disabled = disabled;
+    
+    // Speed slider remains enabled during game
+}
+
+// Update mobile UI during game
+function updateMobileGameUI() {
+    if (!isMobile()) return;
+    
+    // Update controls state
+    updateMobileControlsState();
+    
+    // Update floating stats
+    if (floatingWinnersCount) {
+        floatingWinnersCount.textContent = winners.length;
+    }
+    if (floatingElapsedTime && gameStartTime) {
+        const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        floatingElapsedTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    
+    // Update winners panel stats
+    if (mobileRemainingWinners) {
+        const targetCount = parseInt(winnerCountInput.value) || 1;
+        const remaining = Math.max(0, targetCount - winners.length);
+        mobileRemainingWinners.textContent = remaining;
+    }
+    if (mobileElapsedTime && gameStartTime) {
+        const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        mobileElapsedTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    
+    // Update start button
+    if (mobileStartBtn) {
+        if (isGameRunning) {
+            mobileStartBtn.classList.add('running');
+            mobileStartBtn.querySelector('.nav-icon').textContent = '⏹️';
+        } else {
+            mobileStartBtn.classList.remove('running');
+            mobileStartBtn.querySelector('.nav-icon').textContent = '▶️';
+        }
+    }
+    
+    // Show/hide floating stats
+    if (mobileFloatingStats) {
+        if (isGameRunning) {
+            mobileFloatingStats.classList.add('show');
+        } else {
+            mobileFloatingStats.classList.remove('show');
+        }
+    }
+}
+
+// Add winner to mobile list
+function addToMobileWinnersList(name, index) {
+    if (!mobileWinnersList) return;
+    
+    // Clear empty message
+    const emptyMsg = mobileWinnersList.querySelector('.empty-message');
+    if (emptyMsg) {
+        emptyMsg.remove();
+    }
+    
+    // Create winner card
+    const card = document.createElement('div');
+    card.className = 'winner-card';
+    
+    const number = document.createElement('div');
+    number.className = 'winner-number';
+    number.textContent = `${index + 1}.`;
+    
+    const nameEl = document.createElement('div');
+    nameEl.className = 'winner-name';
+    nameEl.textContent = name;
+    
+    card.appendChild(number);
+    card.appendChild(nameEl);
+    mobileWinnersList.appendChild(card);
+    
+    // Scroll to bottom
+    mobileWinnersList.scrollTo({
+        top: mobileWinnersList.scrollHeight,
+        behavior: 'smooth'
+    });
+    
+    // Update floating counter
+    if (floatingWinnersCount) {
+        floatingWinnersCount.textContent = winners.length;
+    }
+}
+
+// Initialize mobile event listeners
+function initializeMobileEventListeners() {
+    // Panel open buttons
+    if (mobileNamesBtn) {
+        mobileNamesBtn.addEventListener('click', () => openMobilePanel(mobileNamesPanel));
+    }
+    if (mobileSettingsBtn) {
+        mobileSettingsBtn.addEventListener('click', () => openMobilePanel(mobileSettingsPanel));
+    }
+    if (mobileWinnersBtn) {
+        mobileWinnersBtn.addEventListener('click', () => openMobilePanel(mobileWinnersPanel));
+    }
+    
+    // Start button
+    if (mobileStartBtn) {
+        mobileStartBtn.addEventListener('click', () => {
+            // Check button state instead of isGameRunning for immediate response
+            if (mobileStartBtn.classList.contains('running')) {
+                stopGame();
+                // Update button immediately
+                mobileStartBtn.classList.remove('running');
+                mobileStartBtn.querySelector('.nav-icon').textContent = '▶️';
+            } else {
+                mobileStartDraw();
+                // Button will be updated by updateMobileGameUI in mobileStartDraw
+            }
+        });
+    }
+    
+    // Close buttons
+    if (closeNamesPanel) {
+        closeNamesPanel.addEventListener('click', closeAllMobilePanels);
+    }
+    if (closeSettingsPanel) {
+        closeSettingsPanel.addEventListener('click', closeAllMobilePanels);
+    }
+    if (closeWinnersPanel) {
+        closeWinnersPanel.addEventListener('click', closeAllMobilePanels);
+    }
+    
+    // Backdrop close
+    if (mobilePanelBackdrop) {
+        mobilePanelBackdrop.addEventListener('click', closeAllMobilePanels);
+    }
+    
+    // Mobile names input
+    if (mobileNamesInput) {
+        mobileNamesInput.addEventListener('input', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            updateMobileCounters();
+            updateMobileStepperButtons();
+            
+            // Only sync names, not grid size
+            if (namesInput) {
+                namesInput.value = mobileNamesInput.value;
+                updateCounters();
+            }
+            
+            // Update grid with names (keep mobile portrait orientation)
+            const text = mobileNamesInput.value;
+            const names = parseNames(text);
+            createGrid();
+            if (names.length > 0) {
+                placeNamesOnGrid(names);
+            }
+            
+            // Re-apply mobile grid layout
+            setTimeout(() => {
+                updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+            }, 50);
+            
+            saveParticipantList();
+        });
+    }
+    
+    // Mobile winner count
+    if (mobileWinnerCount) {
+        mobileWinnerCount.addEventListener('input', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            updateMobileStepperButtons();
+            // Only sync winner count, not grid size
+            if (winnerCountInput) {
+                winnerCountInput.value = mobileWinnerCount.value;
+                updateStepperButtons();
+            }
+            saveSettings();
+        });
+        mobileWinnerCount.addEventListener('change', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            updateMobileStepperButtons();
+            // Only sync winner count, not grid size
+            if (winnerCountInput) {
+                winnerCountInput.value = mobileWinnerCount.value;
+                updateStepperButtons();
+            }
+            saveSettings();
+        });
+    }
+    
+    // Mobile stepper buttons
+    if (mobileIncreaseBtn) {
+        mobileIncreaseBtn.addEventListener('click', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            const currentValue = parseInt(mobileWinnerCount.value) || 1;
+            const namesText = mobileNamesInput ? mobileNamesInput.value : '';
+            const maxValue = parseNames(namesText).length || 999;
+            mobileWinnerCount.value = Math.min(currentValue + 1, maxValue);
+            updateMobileStepperButtons();
+            // Only sync winner count, not grid size
+            if (winnerCountInput) {
+                winnerCountInput.value = mobileWinnerCount.value;
+                updateStepperButtons();
+            }
+            saveSettings();
+        });
+    }
+    if (mobileDecreaseBtn) {
+        mobileDecreaseBtn.addEventListener('click', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            const currentValue = parseInt(mobileWinnerCount.value) || 1;
+            mobileWinnerCount.value = Math.max(currentValue - 1, 1);
+            updateMobileStepperButtons();
+            // Only sync winner count, not grid size
+            if (winnerCountInput) {
+                winnerCountInput.value = mobileWinnerCount.value;
+                updateStepperButtons();
+            }
+            saveSettings();
+        });
+    }
+    
+    // Mobile grid size
+    if (mobileGridSize) {
+        mobileGridSize.addEventListener('change', () => {
+            // Don't allow changes during game
+            if (isGameRunning) return;
+            
+            // Apply mobile grid size directly (portrait orientation)
+            const mobileSize = mobileGridSize.value;
+            const [cols, rows] = mobileSize.split('x').map(Number);
+            GRID_COLS = cols;
+            GRID_ROWS = rows;
+            TOTAL_CELLS = cols * rows;
+            
+            // Update grid
+            gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            
+            // Recreate grid
+            const text = mobileNamesInput ? mobileNamesInput.value : namesInput.value;
+            const names = parseNames(text);
+            createGrid();
+            if (names.length > 0) {
+                placeNamesOnGrid(names);
+            }
+            
+            // Update mobile grid layout
+            setTimeout(() => {
+                updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+            }, 50);
+            
+            // Sync to desktop (convert to landscape)
+            if (gridSizeSelect) {
+                gridSizeSelect.value = mobileToDesktopGridSize(mobileSize);
+            }
+            
+            saveSettings();
+        });
+    }
+    
+    // Mobile speed slider - only update speed, don't change grid
+    if (mobileSpeedSlider) {
+        mobileSpeedSlider.addEventListener('input', () => {
+            if (mobileSpeedValue) {
+                mobileSpeedValue.textContent = `${mobileSpeedSlider.value}x`;
+            }
+            // Only update speed value, don't call syncMobileToDesktop which changes grid
+            gameSpeed = parseFloat(mobileSpeedSlider.value);
+            if (speedSlider) {
+                speedSlider.value = mobileSpeedSlider.value;
+            }
+            if (speedValue) {
+                speedValue.textContent = `${mobileSpeedSlider.value}x`;
+            }
+            
+            // If game is running, update interval
+            if (isGameRunning && gameInterval) {
+                clearInterval(gameInterval);
+                const baseInterval = 200;
+                const adjustedInterval = baseInterval / gameSpeed;
+                
+                gameInterval = setInterval(() => {
+                    updateSnakeDirection();
+                    moveSnake();
+                }, adjustedInterval);
+            }
+            
+            saveSettings();
+        });
+        mobileSpeedSlider.addEventListener('change', () => {
+            // Same as input - only speed, no grid change
+            gameSpeed = parseFloat(mobileSpeedSlider.value);
+            if (speedSlider) {
+                speedSlider.value = mobileSpeedSlider.value;
+            }
+            if (speedValue) {
+                speedValue.textContent = `${mobileSpeedSlider.value}x`;
+            }
+            saveSettings();
+        });
+    }
+    
+    // Mobile reset button
+    if (mobileResetBtn) {
+        mobileResetBtn.addEventListener('click', () => {
+            closeAllMobilePanels();
+            resetDraw();
+            syncDesktopToMobile();
+            
+            // Reset mobile winners list
+            if (mobileWinnersList) {
+                mobileWinnersList.innerHTML = '<p class="empty-message">Draw results will appear here...</p>';
+            }
+            if (mobileRemainingWinners) {
+                mobileRemainingWinners.textContent = '-';
+            }
+            if (mobileElapsedTime) {
+                mobileElapsedTime.textContent = '00:00';
+            }
+        });
+    }
+    
+    // Window resize handler - sync values and update grid
+    window.addEventListener('resize', () => {
+        if (isMobile()) {
+            syncDesktopToMobile();
+            updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+        } else {
+            // Reset grid to desktop style
+            if (gridContainer) {
+                gridContainer.style.width = '';
+                gridContainer.style.height = '';
+                gridContainer.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`;
+                gridContainer.style.gridTemplateRows = `repeat(${GRID_ROWS}, 1fr)`;
+            }
+        }
+    });
+    
+    // Initial mobile grid layout
+    if (isMobile()) {
+        // Small delay to ensure container is rendered
+        setTimeout(() => {
+            updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+        }, 100);
+    }
+}
+
+// Override addToWinnersList to also update mobile
+const originalAddToWinnersList = addToWinnersList;
+addToWinnersList = function(name, index) {
+    originalAddToWinnersList(name, index);
+    addToMobileWinnersList(name, index);
+    updateMobileGameUI();
+};
+
+// Override stopGame to update mobile UI
+const originalStopGame = stopGame;
+stopGame = function() {
+    originalStopGame();
+    updateMobileGameUI();
+};
+
+// Override startGame to update mobile UI
+const originalStartGame = startGame;
+startGame = function(names, foodCount) {
+    // Reset mobile winners list
+    if (mobileWinnersList) {
+        mobileWinnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
+    }
+    originalStartGame(names, foodCount);
+    updateMobileGameUI();
+};
+
+// Update mobile elapsed time during game
+const originalUpdateElapsedTime = updateElapsedTime;
+updateElapsedTime = function() {
+    originalUpdateElapsedTime();
+    updateMobileGameUI();
+};
+
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeApp();
+        initializeMobileEventListeners();
+        syncDesktopToMobile();
+    });
 } else {
     initializeApp();
+    initializeMobileEventListeners();
+    syncDesktopToMobile();
 }

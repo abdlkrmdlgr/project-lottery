@@ -215,6 +215,11 @@ function updateMobileGridLayout(cols, rows) {
     gridContainer.style.gap = `${gridGap}px`;
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
     gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+    
+    // Update font sizes after layout change
+    requestAnimationFrame(() => {
+        updateCellFontSizes();
+    });
 }
 
 // Create grid
@@ -229,6 +234,49 @@ function createGrid() {
         gridContainer.appendChild(cell);
         gridCells.push(cell);
     }
+    
+    // Update font sizes after grid is created
+    requestAnimationFrame(() => {
+        updateCellFontSizes();
+    });
+}
+
+// Calculate and update font sizes based on cell dimensions
+function updateCellFontSizes() {
+    if (gridCells.length === 0) return;
+    
+    // Get actual cell size from the first cell
+    const firstCell = gridCells[0];
+    if (!firstCell) return;
+    
+    const cellRect = firstCell.getBoundingClientRect();
+    const cellWidth = cellRect.width;
+    const cellHeight = cellRect.height;
+    
+    // Calculate font size based on cell dimensions
+    // Use the smaller dimension to ensure text fits
+    const minDimension = Math.min(cellWidth, cellHeight);
+    
+    // Font size should be proportional to cell size
+    // Smaller cells need smaller fonts, larger cells can have bigger fonts
+    let fontSize;
+    if (minDimension < 15) {
+        fontSize = Math.max(4, minDimension * 0.35); // Very small cells
+    } else if (minDimension < 25) {
+        fontSize = Math.max(5, minDimension * 0.3); // Small cells
+    } else if (minDimension < 40) {
+        fontSize = Math.max(6, minDimension * 0.25); // Medium cells
+    } else {
+        fontSize = Math.max(8, Math.min(minDimension * 0.2, 14)); // Large cells
+    }
+    
+    // Apply font size to all cells using CSS custom property
+    gridContainer.style.setProperty('--cell-font-size', `${fontSize}px`);
+    
+    // Also apply directly to cells for browsers that don't support CSS variables well
+    gridCells.forEach(cell => {
+        cell.style.fontSize = `${fontSize}px`;
+    });
 }
 
 // Place names on grid
@@ -915,6 +963,12 @@ function handleGridSizeChange() {
     if (isMobile()) {
         setTimeout(() => {
             updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+            updateCellFontSizes();
+        }, 50);
+    } else {
+        // Update font sizes for desktop after layout change
+        setTimeout(() => {
+            updateCellFontSizes();
         }, 50);
     }
 }
@@ -1685,19 +1739,26 @@ function initializeMobileEventListeners() {
     }
     
     // Window resize handler - sync values and update grid
+    // Debounced resize handler for better performance
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        if (isMobile()) {
-            syncDesktopToMobile();
-            updateMobileGridLayout(GRID_COLS, GRID_ROWS);
-        } else {
-            // Reset grid to desktop style
-            if (gridContainer) {
-                gridContainer.style.width = '';
-                gridContainer.style.height = '';
-                gridContainer.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`;
-                gridContainer.style.gridTemplateRows = `repeat(${GRID_ROWS}, 1fr)`;
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (isMobile()) {
+                syncDesktopToMobile();
+                updateMobileGridLayout(GRID_COLS, GRID_ROWS);
+            } else {
+                // Reset grid to desktop style
+                if (gridContainer) {
+                    gridContainer.style.width = '';
+                    gridContainer.style.height = '';
+                    gridContainer.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`;
+                    gridContainer.style.gridTemplateRows = `repeat(${GRID_ROWS}, 1fr)`;
+                }
             }
-        }
+            // Update font sizes after resize
+            updateCellFontSizes();
+        }, 100);
     });
     
     // Initial mobile grid layout

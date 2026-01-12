@@ -253,57 +253,30 @@ function updateCellFontSizes() {
     const cellWidth = cellRect.width;
     const cellHeight = cellRect.height;
 
-    // Calculate base font size for the grid
+    // Calculate font size based on cell dimensions
+    // Use the smaller dimension to ensure text fits
     const minDimension = Math.min(cellWidth, cellHeight);
-    let baseFontSize = Math.max(4, Math.min(minDimension * 0.4, 16));
 
-    // Apply base font size as a CSS variable
-    gridContainer.style.setProperty('--cell-font-size', `${baseFontSize}px`);
-
-    // Iterate through all cells to fit text individually if they have content
-    gridCells.forEach(cell => {
-        if (cell.textContent.trim()) {
-            fitTextInCell(cell);
-        } else {
-            cell.style.fontSize = ''; // Reset to follow --cell-font-size
-        }
-    });
-}
-
-// Helper to fit text within a specific cell
-function fitTextInCell(cell) {
-    if (!cell.textContent.trim()) return;
-
-    // Clear any previous inline font size to get natural dimensions
-    cell.style.fontSize = '';
-
-    // Force word break to ensure we can fit long names
-    cell.style.wordBreak = 'break-all';
-    cell.style.display = 'flex';
-    cell.style.alignItems = 'center';
-    cell.style.justifyContent = 'center';
-
-    const targetWidth = cell.offsetWidth - 4; // padding adjustment
-    const targetHeight = cell.offsetHeight - 4; // padding adjustment
-
-    if (targetWidth <= 0 || targetHeight <= 0) return;
-
-    // Start with a large font size and shrink until it fits
-    let fontSize = Math.floor(targetHeight * 0.9);
-    if (fontSize > 40) fontSize = 40; // High cap for very large cells
-    if (fontSize < 6) fontSize = 6;
-
-    cell.style.fontSize = fontSize + 'px';
-
-    // Shrink font size until content fits within cell dimensions
-    let safetyMargin = 0;
-    while (fontSize > 4 &&
-        (cell.scrollHeight > targetHeight || cell.scrollWidth > targetWidth) &&
-        safetyMargin < 30) {
-        fontSize -= 0.5; // Use smaller steps for better precision
-        cell.style.fontSize = fontSize + 'px';
-        safetyMargin++;
+    // Font size should be proportional to cell size
+    // Smaller cells need smaller fonts, larger cells can have bigger fonts
+    let fontSize;
+    if (minDimension < 15) {
+        fontSize = Math.max(4, minDimension * 0.35); // Very small cells
+    } else if (minDimension < 25) {
+        fontSize = Math.max(5, minDimension * 0.3); // Small cells
+    } else if (minDimension < 40) {
+        fontSize = Math.max(6, minDimension * 0.25); // Medium cells
+    } else {
+        fontSize = Math.max(8, Math.min(minDimension * 0.2, 14)); // Large cells
     }
+
+    // Apply font size to all cells using CSS custom property
+    gridContainer.style.setProperty('--cell-font-size', `${fontSize}px`);
+
+    // Also apply directly to cells for browsers that don't support CSS variables well
+    gridCells.forEach(cell => {
+        cell.style.fontSize = `${fontSize}px`;
+    });
 }
 
 // Place names on grid
@@ -329,9 +302,6 @@ function placeNamesOnGrid(names) {
             namesMap.set(cellIndex, name);
         }
     });
-
-    // Fit names to cells after placement
-    updateCellFontSizes();
 }
 
 // No initial food placement - food appears when snake reaches a named cell

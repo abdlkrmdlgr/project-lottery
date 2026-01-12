@@ -221,7 +221,6 @@ body {
     width: 60px;
     flex-shrink: 0;
     -moz-appearance: textfield;
-    appearance: textfield;
     border-left: none;
     border-right: none;
 }
@@ -637,7 +636,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--cell-font-size, 0.7rem);
+    font-size: clamp(0.4rem, 1.2vw, 0.7rem);
     font-weight: 500;
     color: var(--text-primary);
     text-align: center;
@@ -1848,7 +1847,6 @@ body {
         font-weight: 600;
         color: var(--text-primary);
         -moz-appearance: textfield;
-        appearance: textfield;
     }
 
     .mobile-stepper-input::-webkit-outer-spin-button,

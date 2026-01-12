@@ -752,19 +752,8 @@ async function startDraw() {
     // Start snake game
     startGame(names, count);
     
-    // Wait until game ends (or timeout)
-    const maxWaitTime = 60000; // 60 seconds maximum
-    const startTime = Date.now();
-    
-    const checkCompletion = setInterval(() => {
-        // Only check timeout, winner check is done in moveSnakeWithPosition
-        if (!isGameRunning || Date.now() - startTime > maxWaitTime) {
-            clearInterval(checkCompletion);
-            if (isGameRunning) {
-                stopGame();
-            }
-        }
-    }, 100);
+    // Draw continues until all winners are found or user stops it manually
+    // Winner check is handled in moveSnakeWithPosition function
 }
 
 // Reset draw

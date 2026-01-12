@@ -70,12 +70,12 @@ function saveSettings() {
     if (winnerCountInput) {
         localStorage.setItem(STORAGE_KEYS.WINNER_COUNT, winnerCountInput.value);
     }
-    
+
     // Save grid size
     if (gridSizeSelect) {
         localStorage.setItem(STORAGE_KEYS.GRID_SIZE, gridSizeSelect.value);
     }
-    
+
     // Save speed
     if (speedSlider) {
         localStorage.setItem(STORAGE_KEYS.SPEED, speedSlider.value);
@@ -88,14 +88,14 @@ function loadSettings() {
     if (savedWinnerCount && winnerCountInput) {
         winnerCountInput.value = savedWinnerCount;
     }
-    
+
     // Load grid size
     const savedGridSize = localStorage.getItem(STORAGE_KEYS.GRID_SIZE);
     if (savedGridSize && gridSizeSelect) {
         gridSizeSelect.value = savedGridSize;
         handleGridSizeChange();
     }
-    
+
     // Load speed
     const savedSpeed = localStorage.getItem(STORAGE_KEYS.SPEED);
     if (savedSpeed && speedSlider) {
@@ -112,7 +112,7 @@ function isMobile() {
 // Convert desktop grid size to mobile (swap dimensions for portrait)
 function desktopToMobileGridSize(desktopSize) {
     const mapping = {
-        '9x16': '16x9', 
+        '9x16': '16x9',
         '12x21': '21x12',
         '18x32': '32x18',
         '21x42': '42x21'
@@ -134,15 +134,15 @@ function mobileToDesktopGridSize(mobileSize) {
 // Parse names from textarea
 function parseNames(text) {
     if (!text || !text.trim()) return [];
-    
+
     // Split by comma or newline
     let names = text.split(/[,\n]/);
-    
+
     // Clean and filter
     names = names
         .map(name => name.trim())
         .filter(name => name.length > 0);
-    
+
     // Remove duplicates
     return [...new Set(names)];
 }
@@ -163,11 +163,11 @@ function updateGridSize(size) {
     GRID_COLS = cols; // Width
     GRID_ROWS = rows; // Height
     TOTAL_CELLS = cols * rows;
-    
+
     // Update CSS grid template
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-    
+
     // For mobile: set aspect ratio to keep cells square
     if (isMobile()) {
         updateMobileGridLayout(cols, rows);
@@ -177,37 +177,37 @@ function updateGridSize(size) {
 // Update mobile grid layout to keep cells square
 function updateMobileGridLayout(cols, rows) {
     if (!gridContainer) return;
-    
+
     const visualizationContainer = document.getElementById('visualization-container');
     if (!visualizationContainer) return;
-    
+
     // Calculate available space
     const containerRect = visualizationContainer.getBoundingClientRect();
     const padding = 32; // 16px padding on each side
     const gridPadding = 8; // padding inside grid container
     const gridGap = cols > 30 ? 0 : 1; // gap between cells (0 for large grids)
-    
+
     const availableWidth = containerRect.width - padding;
     const availableHeight = containerRect.height - padding;
-    
+
     // Account for gaps in total size calculation
     const totalGapsWidth = gridGap * (cols - 1);
     const totalGapsHeight = gridGap * (rows - 1);
-    
+
     // Calculate cell size to fit and keep square (accounting for gaps and padding)
     const maxCellWidth = Math.floor((availableWidth - gridPadding * 2 - totalGapsWidth) / cols);
     const maxCellHeight = Math.floor((availableHeight - gridPadding * 2 - totalGapsHeight) / rows);
-    
+
     // Use the smaller dimension to keep cells square
     let cellSize = Math.min(maxCellWidth, maxCellHeight);
-    
+
     // Ensure minimum cell size
     cellSize = Math.max(cellSize, 3);
-    
+
     // Calculate exact grid dimensions (cells + gaps + padding)
     const gridWidth = (cellSize * cols) + totalGapsWidth + (gridPadding * 2);
     const gridHeight = (cellSize * rows) + totalGapsHeight + (gridPadding * 2);
-    
+
     // Apply fixed size grid with square cells
     gridContainer.style.width = `${gridWidth}px`;
     gridContainer.style.height = `${gridHeight}px`;
@@ -215,7 +215,7 @@ function updateMobileGridLayout(cols, rows) {
     gridContainer.style.gap = `${gridGap}px`;
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
     gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-    
+
     // Update font sizes after layout change
     requestAnimationFrame(() => {
         updateCellFontSizes();
@@ -226,7 +226,7 @@ function updateMobileGridLayout(cols, rows) {
 function createGrid() {
     gridContainer.innerHTML = '';
     gridCells = [];
-    
+
     for (let i = 0; i < TOTAL_CELLS; i++) {
         const cell = document.createElement('div');
         cell.className = 'grid-cell';
@@ -234,7 +234,7 @@ function createGrid() {
         gridContainer.appendChild(cell);
         gridCells.push(cell);
     }
-    
+
     // Update font sizes after grid is created
     requestAnimationFrame(() => {
         updateCellFontSizes();
@@ -244,55 +244,74 @@ function createGrid() {
 // Calculate and update font sizes based on cell dimensions
 function updateCellFontSizes() {
     if (gridCells.length === 0) return;
-    
+
     // Get actual cell size from the first cell
     const firstCell = gridCells[0];
     if (!firstCell) return;
-    
+
     const cellRect = firstCell.getBoundingClientRect();
     const cellWidth = cellRect.width;
     const cellHeight = cellRect.height;
-    
-    // Calculate font size based on cell dimensions
-    // Use the smaller dimension to ensure text fits
+
+    // Calculate base font size for the grid
     const minDimension = Math.min(cellWidth, cellHeight);
-    
-    // Font size should be proportional to cell size
-    // Smaller cells need smaller fonts, larger cells can have bigger fonts
-    let fontSize;
-    if (minDimension < 15) {
-        fontSize = Math.max(4, minDimension * 0.35); // Very small cells
-    } else if (minDimension < 25) {
-        fontSize = Math.max(5, minDimension * 0.3); // Small cells
-    } else if (minDimension < 40) {
-        fontSize = Math.max(6, minDimension * 0.25); // Medium cells
-    } else {
-        fontSize = Math.max(8, Math.min(minDimension * 0.2, 14)); // Large cells
-    }
-    
-    // Apply font size to all cells using CSS custom property
-    gridContainer.style.setProperty('--cell-font-size', `${fontSize}px`);
-    
-    // Also apply directly to cells for browsers that don't support CSS variables well
+    let baseFontSize = Math.max(4, Math.min(minDimension * 0.4, 16));
+
+    // Apply base font size as a CSS variable
+    gridContainer.style.setProperty('--cell-font-size', `${baseFontSize}px`);
+
+    // Iterate through all cells to fit text individually if they have content
     gridCells.forEach(cell => {
-        cell.style.fontSize = `${fontSize}px`;
+        if (cell.textContent.trim()) {
+            fitTextInCell(cell);
+        } else {
+            cell.style.fontSize = ''; // Reset to follow --cell-font-size
+        }
     });
+}
+
+// Helper to fit text within a specific cell
+function fitTextInCell(cell) {
+    if (!cell.textContent.trim()) return;
+
+    const clientWidth = cell.clientWidth;
+    const clientHeight = cell.clientHeight;
+
+    if (clientWidth <= 0 || clientHeight <= 0) return;
+
+    // Start with a font size that fills about 80% of height
+    let fontSize = Math.floor(clientHeight * 0.85);
+    if (fontSize < 4) fontSize = 4;
+    if (fontSize > 24) fontSize = 24; // Cap for very large cells
+
+    cell.style.fontSize = fontSize + 'px';
+
+    // Iteratively decrease font size until the text fits perfectly
+    // We check both scrollHeight and scrollWidth to handle wrapping and long words
+    let safetyMargin = 0;
+    while (fontSize > 4 &&
+        (cell.scrollHeight > clientHeight || cell.scrollWidth > clientWidth) &&
+        safetyMargin < 20) {
+        fontSize -= 1;
+        cell.style.fontSize = fontSize + 'px';
+        safetyMargin++;
+    }
 }
 
 // Place names on grid
 function placeNamesOnGrid(names) {
     namesMap.clear();
-    
+
     // Clear all cells
     gridCells.forEach(cell => {
         cell.textContent = '';
         cell.className = 'grid-cell';
         cell.classList.remove('has-name', 'food', 'snake', 'snake-head', 'eaten');
     });
-    
+
     // Place names randomly on cells
     const shuffledIndices = shuffleArray([...Array(TOTAL_CELLS).keys()]);
-    
+
     names.forEach((name, index) => {
         if (index < shuffledIndices.length) {
             const cellIndex = shuffledIndices[index];
@@ -300,10 +319,13 @@ function placeNamesOnGrid(names) {
             cell.textContent = name;
             cell.classList.add('has-name');
             namesMap.set(cellIndex, name);
-            }
-        });
-    }
-    
+        }
+    });
+
+    // Fit names to cells after placement
+    updateCellFontSizes();
+}
+
 // No initial food placement - food appears when snake reaches a named cell
 
 // Initialize snake
@@ -315,10 +337,10 @@ function initSnake() {
         startPos + 1,       // Body segment 1 (position 1)
         startPos + 2        // Body segment 2 (position 2)
     ];
-    
+
     // Set initial direction to right
     snakeDirection = { x: 1, y: 0 };
-    
+
     // Show snake
     updateSnakeDisplay();
 }
@@ -333,7 +355,7 @@ function updateSnakeDisplay() {
                 cell.classList.remove('snake', 'snake-head');
             }
         });
-        
+
         // Show snake with batch DOM updates
         const fragment = document.createDocumentFragment();
         snake.forEach((pos, index) => {
@@ -352,25 +374,25 @@ function getNextSnakePosition() {
     const head = snake[0];
     const row = Math.floor(head / GRID_COLS);
     const col = head % GRID_COLS;
-    
+
     let newRow = row + snakeDirection.y;
     let newCol = col + snakeDirection.x;
-    
+
     // Wrap around walls
     if (newRow < 0) newRow = GRID_ROWS - 1;
     if (newRow >= GRID_ROWS) newRow = 0;
     if (newCol < 0) newCol = GRID_COLS - 1;
     if (newCol >= GRID_COLS) newCol = 0;
-    
+
     return newRow * GRID_COLS + newCol;
 }
 
 // Move snake
 function moveSnake() {
     if (!isGameRunning) return;
-    
+
     let nextPos = getNextSnakePosition();
-    
+
     // If snake will hit its own tail, change direction
     // (excluding tail end - because tail will move)
     if (snake.includes(nextPos) && nextPos !== snake[snake.length - 1]) {
@@ -381,18 +403,18 @@ function moveSnake() {
             { x: -1, y: 0 }, // Left
             { x: 1, y: 0 }   // Right
         ];
-        
+
         // Exclude opposite of current direction
         const oppositeDir = { x: -snakeDirection.x, y: -snakeDirection.y };
-        const availableDirs = directions.filter(dir => 
+        const availableDirs = directions.filter(dir =>
             dir.x !== oppositeDir.x || dir.y !== oppositeDir.y
         );
-        
+
         // Find a safe direction
         const shuffledDirs = shuffleArray(availableDirs);
         let foundSafeDir = false;
         const originalDirection = { ...snakeDirection };
-        
+
         for (const dir of shuffledDirs) {
             snakeDirection = dir;
             const testPos = getNextSnakePosition();
@@ -403,7 +425,7 @@ function moveSnake() {
                 break;
             }
         }
-        
+
         // If no safe direction found, move towards tail end
         if (!foundSafeDir) {
             // Move towards snake's tail end
@@ -412,7 +434,7 @@ function moveSnake() {
             const tailCol = tail % GRID_COLS;
             const headRow = Math.floor(snake[0] / GRID_COLS);
             const headCol = snake[0] % GRID_COLS;
-            
+
             // Calculate direction towards tail
             let dirToTail = { x: 0, y: 0 };
             if (tailCol !== headCol) {
@@ -421,7 +443,7 @@ function moveSnake() {
             if (tailRow !== headRow) {
                 dirToTail.y = tailRow > headRow ? 1 : -1;
             }
-            
+
             // Move horizontally first, then vertically
             if (dirToTail.x !== 0) {
                 snakeDirection = { x: dirToTail.x, y: 0 };
@@ -436,11 +458,11 @@ function moveSnake() {
                     snakeDirection = originalDirection;
                 }
             }
-            
+
             nextPos = getNextSnakePosition();
         }
     }
-    
+
     moveSnakeWithPosition(nextPos);
 }
 
@@ -448,19 +470,19 @@ function moveSnake() {
 function moveSnakeWithPosition(nextPos) {
     // Don't move if game is stopped
     if (!isGameRunning) return;
-    
+
     const cell = gridCells[nextPos];
-    
+
     // Check if reached a named cell (mark as food and eat)
     if (cell.classList.contains('has-name') && !cell.classList.contains('eaten')) {
         const name = namesMap.get(nextPos);
         if (name) {
             // Mark as food (visual effect)
             cell.classList.add('food');
-            
+
             // Food eaten - process immediately
             addToWinnersList(name, winners.length);
-            
+
             // Remove food and mark as eaten
             setTimeout(() => {
                 cell.classList.remove('food');
@@ -468,7 +490,7 @@ function moveSnakeWithPosition(nextPos) {
                 cell.textContent = ''; // Remove name
                 namesMap.delete(nextPos);
             }, 100); // Short duration for visual effect
-            
+
             // Check if enough winners selected (after food eaten)
             // winners.length is now updated (push done in addToWinnersList)
             const targetCount = parseInt(winnerCountInput.value) || 1;
@@ -481,7 +503,7 @@ function moveSnakeWithPosition(nextPos) {
                 return;
             }
         }
-        
+
         // Snake grows
         snake.unshift(nextPos);
     } else {
@@ -489,7 +511,7 @@ function moveSnakeWithPosition(nextPos) {
         snake.unshift(nextPos);
         snake.pop();
     }
-    
+
     updateSnakeDisplay();
 }
 
@@ -498,7 +520,7 @@ function updateSnakeDirection() {
     const head = snake[0];
     const headRow = Math.floor(head / GRID_COLS);
     const headCol = head % GRID_COLS;
-    
+
     // 70% chance to continue in current direction, 30% to change direction
     if (Math.random() < 0.3) {
         // Change direction
@@ -508,18 +530,18 @@ function updateSnakeDirection() {
             { x: -1, y: 0 }, // Left
             { x: 1, y: 0 }   // Right
         ];
-        
+
         // Exclude opposite of current direction
         const oppositeDir = { x: -snakeDirection.x, y: -snakeDirection.y };
-        const availableDirs = directions.filter(dir => 
+        const availableDirs = directions.filter(dir =>
             dir.x !== oppositeDir.x || dir.y !== oppositeDir.y
         );
-        
+
         // Choose random direction
         const randomDir = availableDirs[Math.floor(Math.random() * availableDirs.length)];
         snakeDirection = randomDir;
     }
-    
+
     // If obstacle exists (will hit own tail), change direction
     const nextPos = getNextSnakePosition();
     if (snake.includes(nextPos) && nextPos !== snake[snake.length - 1]) {
@@ -530,7 +552,7 @@ function updateSnakeDirection() {
             { x: -1, y: 0 }, // Left
             { x: 1, y: 0 }   // Right
         ];
-        
+
         const shuffledDirs = shuffleArray(directions);
         for (const dir of shuffledDirs) {
             snakeDirection = dir;
@@ -547,28 +569,28 @@ function startGame(names, foodCount) {
     if (isGameRunning) {
         stopGame();
     }
-    
+
     // Create grid
     createGrid();
-    
+
     // Place names
     placeNamesOnGrid(names);
-    
+
     // No initial food placement - food appears when snake reaches a named cell
-    
+
     // Initialize snake
     initSnake();
-    
+
     // Start game
     isGameRunning = true;
-    
+
     // Start elapsed time counter
     startElapsedTimeUpdate();
-    
+
     // Snake movement loop - adjust according to speed multiplier
     const baseInterval = 200; // Base interval (for 1x speed)
     const adjustedInterval = baseInterval / gameSpeed; // Adjust according to speed multiplier
-    
+
     gameInterval = setInterval(() => {
         updateSnakeDirection();
         moveSnake();
@@ -600,7 +622,7 @@ function enableHeaderControls() {
 // Stop game - Enhanced cleanup
 function stopGame() {
     isGameRunning = false;
-    
+
     // Clear all intervals with proper cleanup
     if (gameInterval) {
         clearInterval(gameInterval);
@@ -610,22 +632,22 @@ function stopGame() {
         clearInterval(elapsedTimeInterval);
         elapsedTimeInterval = null;
     }
-    
+
     // Re-enable header controls
     enableHeaderControls();
-    
+
     // Restore start button
     startBtn.textContent = 'Start Draw';
     startBtn.disabled = false;
     startBtn.classList.remove('running');
-    
+
     // Show overlay if draw completed
     const targetCount = parseInt(winnerCountInput.value) || 1;
     if (winners.length >= targetCount && winners.length > 0) {
         // Use setTimeout to prevent blocking
         setTimeout(() => showCompletionOverlay(), 100);
     }
-    
+
     gameStartTime = null;
 }
 
@@ -642,7 +664,7 @@ function updateElapsedTime() {
         elapsedTimeSpan.textContent = '00:00';
         return;
     }
-    
+
     const elapsed = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
@@ -653,7 +675,7 @@ function updateElapsedTime() {
 function startElapsedTimeUpdate() {
     gameStartTime = Date.now();
     updateElapsedTime(); // First update
-    
+
     elapsedTimeInterval = setInterval(() => {
         updateElapsedTime();
     }, 1000); // Update every second
@@ -662,10 +684,10 @@ function startElapsedTimeUpdate() {
 // Add to winners list - Optimized version
 function addToWinnersList(name, index) {
     winners.push({ name, index: index + 1 });
-    
+
     // Update remaining winners count
     updateRemainingWinners();
-    
+
     // Use requestAnimationFrame for smooth DOM updates
     requestAnimationFrame(() => {
         // Clear empty message
@@ -673,23 +695,23 @@ function addToWinnersList(name, index) {
         if (emptyMsg) {
             emptyMsg.remove();
         }
-        
+
         // Create winner card
         const card = document.createElement('div');
         card.className = 'winner-card';
-        
+
         const number = document.createElement('div');
         number.className = 'winner-number';
         number.textContent = `${index + 1}.`;
-        
+
         const nameEl = document.createElement('div');
         nameEl.className = 'winner-name';
         nameEl.textContent = name;
-        
+
         card.appendChild(number);
         card.appendChild(nameEl);
         winnersList.appendChild(card);
-        
+
         // Smooth scroll to bottom
         winnersList.scrollTo({
             top: winnersList.scrollHeight,
@@ -705,53 +727,53 @@ async function startDraw() {
         stopGame();
         return;
     }
-    
+
     const text = namesInput.value;
     const names = parseNames(text);
-    
+
     if (names.length === 0) {
         showModal('No Names Entered', 'Please enter at least one name!', 'warning');
         return;
     }
-    
+
     const count = parseInt(winnerCountInput.value) || 1;
-    
+
     if (count > names.length) {
         showModal('Invalid Winner Count', `Number of winners (${count}) cannot be greater than total number of names (${names.length})!`, 'error');
         return;
     }
-    
+
     if (count < 1) {
         showModal('Invalid Winner Count', 'Number of winners must be at least 1!', 'error');
         return;
     }
-    
+
     // Save participant list and settings to localStorage
     saveParticipantList();
     saveSettings();
-    
+
     // Hide overlay
     hideCompletionOverlay();
-    
+
     // Disable header controls
     disableHeaderControls();
-    
+
     // Change start button to "Stop Draw" and keep it enabled
     startBtn.textContent = 'Stop Draw';
     startBtn.disabled = false;
     startBtn.classList.add('running');
-    
+
     // Clear previous winners
     winners = [];
     winnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
-    
+
     // Reset statistics
     remainingWinnersSpan.textContent = count;
     elapsedTimeSpan.textContent = '00:00';
-    
+
     // Start snake game
     startGame(names, count);
-    
+
     // Draw continues until all winners are found or user stops it manually
     // Winner check is handled in moveSnakeWithPosition function
 }
@@ -764,7 +786,7 @@ function resetDraw() {
     winnersList.innerHTML = '<p class="empty-message">Draw results will appear here...</p>';
     // Don't clear namesInput.value - keep participant list
     // Don't reset winnerCountInput.value - keep winner count setting
-    
+
     // Recreate grid with existing names if any
     const text = namesInput.value;
     const names = parseNames(text);
@@ -772,14 +794,14 @@ function resetDraw() {
     if (names.length > 0) {
         placeNamesOnGrid(names);
     }
-    
+
     updateCounters();
     updateStepperButtons();
-    
+
     // Reset statistics
     remainingWinnersSpan.textContent = '-';
     elapsedTimeSpan.textContent = '00:00';
-    
+
     // Make sure controls are enabled (stopGame already does this but extra assurance)
     enableHeaderControls();
 }
@@ -790,19 +812,19 @@ function copyResults(buttonElement = null) {
         showModal('No Results', 'No results to copy!', 'warning');
         return;
     }
-    
+
     const text = winners.map(w => `${w.index}. ${w.name}`).join('\n');
-    
+
     navigator.clipboard.writeText(text).then(() => {
         // Visual feedback - use provided button or find a default one
         const targetBtn = buttonElement || document.querySelector('.btn-primary');
         if (targetBtn) {
             const originalText = targetBtn.textContent;
             const originalBackground = targetBtn.style.background;
-            
+
             targetBtn.textContent = '✓ Copied!';
             targetBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            
+
             setTimeout(() => {
                 targetBtn.textContent = originalText;
                 targetBtn.style.background = originalBackground;
@@ -817,26 +839,26 @@ function copyResults(buttonElement = null) {
 // Populate overlay winners list
 function populateOverlayWinnersList() {
     if (!overlayWinnersList) return;
-    
+
     overlayWinnersList.innerHTML = '';
-    
+
     if (winners.length === 0) {
         overlayWinnersList.innerHTML = '<p class="empty-message">No winners yet.</p>';
         return;
     }
-    
+
     winners.forEach((winner) => {
         const item = document.createElement('div');
         item.className = 'overlay-winner-item';
-        
+
         const number = document.createElement('span');
         number.className = 'overlay-winner-number';
         number.textContent = `${winner.index}.`;
-        
+
         const name = document.createElement('span');
         name.className = 'overlay-winner-name';
         name.textContent = winner.name;
-        
+
         item.appendChild(number);
         item.appendChild(name);
         overlayWinnersList.appendChild(item);
@@ -861,15 +883,15 @@ function hideCompletionOverlay() {
 // Show modal
 function showModal(title, message, type = 'warning') {
     if (!modalOverlay || !modalTitle || !modalMessage || !modalIcon) return;
-    
+
     // Set content
     modalTitle.textContent = title;
     modalMessage.textContent = message;
-    
+
     // Set type and icon
     modalOverlay.querySelector('.modal-content').className = 'modal-content ' + type;
-    
-    switch(type) {
+
+    switch (type) {
         case 'error':
             modalIcon.textContent = '❌';
             break;
@@ -881,10 +903,10 @@ function showModal(title, message, type = 'warning') {
             modalIcon.textContent = '⚠️';
             break;
     }
-    
+
     // Show modal
     modalOverlay.classList.add('show');
-    
+
     // Focus OK button for accessibility
     if (modalOkBtn) {
         setTimeout(() => modalOkBtn.focus(), 100);
@@ -913,17 +935,17 @@ function updateCounters() {
     const text = namesInput.value;
     const names = parseNames(text);
     const charCount = text.length;
-    
+
     nameCountSpan.textContent = names.length;
     charCountSpan.textContent = charCount;
-    
+
     // Enable/disable start button based on names
     if (names.length > 0) {
         startBtn.disabled = false;
     } else {
         startBtn.disabled = true;
     }
-    
+
     // Update grid (if names exist)
     if (names.length > 0 && !isGameRunning) {
         createGrid();
@@ -937,7 +959,7 @@ function updateCounters() {
 function handleGridSizeChange() {
     const selectedSize = gridSizeSelect.value;
     updateGridSize(selectedSize);
-    
+
     // Recreate grid if game is not running
     if (!isGameRunning) {
         const text = namesInput.value;
@@ -947,7 +969,7 @@ function handleGridSizeChange() {
             placeNamesOnGrid(names);
         }
     }
-    
+
     // Update mobile grid layout after grid is created
     if (isMobile()) {
         setTimeout(() => {
@@ -984,7 +1006,7 @@ function updateStepperButtons() {
     const minValue = parseInt(winnerCountInput.min) || 1;
     const names = parseNames(namesInput.value);
     const maxValue = names.length > 0 ? names.length : 999;
-    
+
     decreaseBtn.disabled = currentValue <= minValue;
     increaseBtn.disabled = currentValue >= maxValue;
 }
@@ -993,13 +1015,13 @@ function updateStepperButtons() {
 function handleSpeedChange() {
     gameSpeed = parseFloat(speedSlider.value);
     speedValue.textContent = `${gameSpeed}x`;
-    
+
     // If game is running, restart interval
     if (isGameRunning && gameInterval) {
         clearInterval(gameInterval);
         const baseInterval = 200; // Base interval (for 1x speed)
         const adjustedInterval = baseInterval / gameSpeed;
-        
+
         gameInterval = setInterval(() => {
             updateSnakeDirection();
             moveSnake();
@@ -1055,14 +1077,14 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         const overlayCopyBtnEl = document.getElementById('overlay-copy-btn');
         const overlayCloseBtnEl = document.getElementById('overlay-close-btn');
-        
+
         if (overlayCopyBtnEl) {
             overlayCopyBtnEl.addEventListener('click', copyResultsFromOverlay);
         }
         if (overlayCloseBtnEl) {
             overlayCloseBtnEl.addEventListener('click', closeCompletionOverlay);
         }
-        
+
         // Close overlay on backdrop click
         if (completionOverlay) {
             completionOverlay.addEventListener('click', (e) => {
@@ -1071,7 +1093,7 @@ if (document.readyState === 'loading') {
                 }
             });
         }
-        
+
         // Modal event listeners
         if (modalOkBtn) {
             modalOkBtn.addEventListener('click', hideModal);
@@ -1102,7 +1124,7 @@ if (document.readyState === 'loading') {
     if (overlayCloseBtn) {
         overlayCloseBtn.addEventListener('click', closeCompletionOverlay);
     }
-    
+
     // Close overlay on backdrop click
     if (completionOverlay) {
         completionOverlay.addEventListener('click', (e) => {
@@ -1111,7 +1133,7 @@ if (document.readyState === 'loading') {
             }
         });
     }
-    
+
     // Modal event listeners
     if (modalOkBtn) {
         modalOkBtn.addEventListener('click', hideModal);
@@ -1141,7 +1163,7 @@ function initializeApp() {
     // Load saved settings and participant list first
     loadSettings();
     loadParticipantList();
-    
+
     // Set initial grid size based on device
     if (isMobile()) {
         // For mobile: use portrait grid size
@@ -1158,11 +1180,11 @@ function initializeApp() {
         const initialSize = gridSizeSelect.value;
         updateGridSize(initialSize);
     }
-    
+
     createGrid();
     updateCounters();
     updateStepperButtons();
-    
+
     // Set speed slider initial value (after loading settings)
     if (speedSlider && speedValue) {
         gameSpeed = parseFloat(speedSlider.value);
@@ -1270,10 +1292,10 @@ function syncMobileToDesktop() {
 // Update mobile counters
 function updateMobileCounters() {
     if (!mobileNamesInput || !mobileNameCount || !mobileCharCount) return;
-    
+
     const text = mobileNamesInput.value;
     const names = parseNames(text);
-    
+
     mobileNameCount.textContent = names.length;
     mobileCharCount.textContent = text.length;
 }
@@ -1281,13 +1303,13 @@ function updateMobileCounters() {
 // Update mobile stepper buttons
 function updateMobileStepperButtons() {
     if (!mobileWinnerCount || !mobileDecreaseBtn || !mobileIncreaseBtn) return;
-    
+
     const currentValue = parseInt(mobileWinnerCount.value) || 1;
     const minValue = 1;
     const namesText = mobileNamesInput ? mobileNamesInput.value : '';
     const names = parseNames(namesText);
     const maxValue = names.length > 0 ? names.length : 999;
-    
+
     mobileDecreaseBtn.disabled = currentValue <= minValue;
     mobileIncreaseBtn.disabled = currentValue >= maxValue;
 }
@@ -1307,7 +1329,7 @@ function mobileStartDraw() {
         speedSlider.value = mobileSpeedSlider.value;
         handleSpeedChange();
     }
-    
+
     // Apply mobile grid size directly (portrait) - don't convert to desktop
     if (mobileGridSize) {
         const mobileSize = mobileGridSize.value;
@@ -1315,65 +1337,65 @@ function mobileStartDraw() {
         GRID_COLS = cols;
         GRID_ROWS = rows;
         TOTAL_CELLS = cols * rows;
-        
+
         gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     }
-    
+
     closeAllMobilePanels();
-    
+
     // Start draw with current mobile settings
     const text = mobileNamesInput ? mobileNamesInput.value : namesInput.value;
     const names = parseNames(text);
-    
+
     if (names.length === 0) {
         showModal('No Names Entered', 'Please enter at least one name!', 'warning');
         return;
     }
-    
+
     const count = parseInt(mobileWinnerCount ? mobileWinnerCount.value : winnerCountInput.value) || 1;
-    
+
     if (count > names.length) {
         showModal('Invalid Winner Count', `Number of winners (${count}) cannot be greater than total number of names (${names.length})!`, 'error');
         return;
     }
-    
+
     if (count < 1) {
         showModal('Invalid Winner Count', 'Number of winners must be at least 1!', 'error');
         return;
     }
-    
+
     // Save settings
     saveParticipantList();
     saveSettings();
-    
+
     // Hide overlay
     hideCompletionOverlay();
-    
+
     // Disable header controls
     disableHeaderControls();
-    
+
     // Change start button
     startBtn.textContent = 'Stop Draw';
     startBtn.disabled = false;
-    
+
     // Clear previous winners
     winners = [];
     winnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
     if (mobileWinnersList) {
         mobileWinnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
     }
-    
+
     // Reset statistics
     remainingWinnersSpan.textContent = count;
     elapsedTimeSpan.textContent = '00:00';
-    
+
     // Start snake game directly (bypassing startDraw to avoid grid size change)
     startGame(names, count);
-    
+
     // Update mobile UI immediately after game starts
     updateMobileGameUI();
-    
+
     // Update mobile grid layout after game starts
     setTimeout(() => {
         updateMobileGridLayout(GRID_COLS, GRID_ROWS);
@@ -1383,7 +1405,7 @@ function mobileStartDraw() {
 // Disable/enable mobile controls during game
 function updateMobileControlsState() {
     const disabled = isGameRunning;
-    
+
     // Disable inputs that shouldn't change during game
     if (mobileNamesInput) mobileNamesInput.disabled = disabled;
     if (mobileWinnerCount) mobileWinnerCount.disabled = disabled;
@@ -1391,17 +1413,17 @@ function updateMobileControlsState() {
     if (mobileIncreaseBtn) mobileIncreaseBtn.disabled = disabled;
     if (mobileDecreaseBtn) mobileDecreaseBtn.disabled = disabled;
     if (mobileResetBtn) mobileResetBtn.disabled = disabled;
-    
+
     // Speed slider remains enabled during game
 }
 
 // Update mobile UI during game
 function updateMobileGameUI() {
     if (!isMobile()) return;
-    
+
     // Update controls state
     updateMobileControlsState();
-    
+
     // Update floating stats
     if (floatingWinnersCount) {
         floatingWinnersCount.textContent = winners.length;
@@ -1412,7 +1434,7 @@ function updateMobileGameUI() {
         const seconds = elapsed % 60;
         floatingElapsedTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
-    
+
     // Update winners panel stats
     if (mobileRemainingWinners) {
         const targetCount = parseInt(winnerCountInput.value) || 1;
@@ -1425,7 +1447,7 @@ function updateMobileGameUI() {
         const seconds = elapsed % 60;
         mobileElapsedTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
-    
+
     // Update start button
     if (mobileStartBtn) {
         if (isGameRunning) {
@@ -1434,7 +1456,7 @@ function updateMobileGameUI() {
             mobileStartBtn.classList.remove('running');
         }
     }
-    
+
     // Show/hide floating stats
     if (mobileFloatingStats) {
         if (isGameRunning) {
@@ -1448,35 +1470,35 @@ function updateMobileGameUI() {
 // Add winner to mobile list
 function addToMobileWinnersList(name, index) {
     if (!mobileWinnersList) return;
-    
+
     // Clear empty message
     const emptyMsg = mobileWinnersList.querySelector('.empty-message');
     if (emptyMsg) {
         emptyMsg.remove();
     }
-    
+
     // Create winner card
     const card = document.createElement('div');
     card.className = 'winner-card';
-    
+
     const number = document.createElement('div');
     number.className = 'winner-number';
     number.textContent = `${index + 1}.`;
-    
+
     const nameEl = document.createElement('div');
     nameEl.className = 'winner-name';
     nameEl.textContent = name;
-    
+
     card.appendChild(number);
     card.appendChild(nameEl);
     mobileWinnersList.appendChild(card);
-    
+
     // Scroll to bottom
     mobileWinnersList.scrollTo({
         top: mobileWinnersList.scrollHeight,
         behavior: 'smooth'
     });
-    
+
     // Update floating counter
     if (floatingWinnersCount) {
         floatingWinnersCount.textContent = winners.length;
@@ -1495,7 +1517,7 @@ function initializeMobileEventListeners() {
     if (mobileWinnersBtn) {
         mobileWinnersBtn.addEventListener('click', () => openMobilePanel(mobileWinnersPanel));
     }
-    
+
     // Start button
     if (mobileStartBtn) {
         mobileStartBtn.addEventListener('click', () => {
@@ -1510,7 +1532,7 @@ function initializeMobileEventListeners() {
             }
         });
     }
-    
+
     // Close buttons
     if (closeNamesPanel) {
         closeNamesPanel.addEventListener('click', closeAllMobilePanels);
@@ -1521,27 +1543,27 @@ function initializeMobileEventListeners() {
     if (closeWinnersPanel) {
         closeWinnersPanel.addEventListener('click', closeAllMobilePanels);
     }
-    
+
     // Backdrop close
     if (mobilePanelBackdrop) {
         mobilePanelBackdrop.addEventListener('click', closeAllMobilePanels);
     }
-    
+
     // Mobile names input
     if (mobileNamesInput) {
         mobileNamesInput.addEventListener('input', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             updateMobileCounters();
             updateMobileStepperButtons();
-            
+
             // Only sync names, not grid size
             if (namesInput) {
                 namesInput.value = mobileNamesInput.value;
                 updateCounters();
             }
-            
+
             // Update grid with names (keep mobile portrait orientation)
             const text = mobileNamesInput.value;
             const names = parseNames(text);
@@ -1549,22 +1571,22 @@ function initializeMobileEventListeners() {
             if (names.length > 0) {
                 placeNamesOnGrid(names);
             }
-            
+
             // Re-apply mobile grid layout
             setTimeout(() => {
                 updateMobileGridLayout(GRID_COLS, GRID_ROWS);
             }, 50);
-            
+
             saveParticipantList();
         });
     }
-    
+
     // Mobile winner count
     if (mobileWinnerCount) {
         mobileWinnerCount.addEventListener('input', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             updateMobileStepperButtons();
             // Only sync winner count, not grid size
             if (winnerCountInput) {
@@ -1576,7 +1598,7 @@ function initializeMobileEventListeners() {
         mobileWinnerCount.addEventListener('change', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             updateMobileStepperButtons();
             // Only sync winner count, not grid size
             if (winnerCountInput) {
@@ -1586,13 +1608,13 @@ function initializeMobileEventListeners() {
             saveSettings();
         });
     }
-    
+
     // Mobile stepper buttons
     if (mobileIncreaseBtn) {
         mobileIncreaseBtn.addEventListener('click', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             const currentValue = parseInt(mobileWinnerCount.value) || 1;
             const namesText = mobileNamesInput ? mobileNamesInput.value : '';
             const maxValue = parseNames(namesText).length || 999;
@@ -1610,7 +1632,7 @@ function initializeMobileEventListeners() {
         mobileDecreaseBtn.addEventListener('click', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             const currentValue = parseInt(mobileWinnerCount.value) || 1;
             mobileWinnerCount.value = Math.max(currentValue - 1, 1);
             updateMobileStepperButtons();
@@ -1622,24 +1644,24 @@ function initializeMobileEventListeners() {
             saveSettings();
         });
     }
-    
+
     // Mobile grid size
     if (mobileGridSize) {
         mobileGridSize.addEventListener('change', () => {
             // Don't allow changes during game
             if (isGameRunning) return;
-            
+
             // Apply mobile grid size directly (portrait orientation)
             const mobileSize = mobileGridSize.value;
             const [cols, rows] = mobileSize.split('x').map(Number);
             GRID_COLS = cols;
             GRID_ROWS = rows;
             TOTAL_CELLS = cols * rows;
-            
+
             // Update grid
             gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
             gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-            
+
             // Recreate grid
             const text = mobileNamesInput ? mobileNamesInput.value : namesInput.value;
             const names = parseNames(text);
@@ -1647,21 +1669,21 @@ function initializeMobileEventListeners() {
             if (names.length > 0) {
                 placeNamesOnGrid(names);
             }
-            
+
             // Update mobile grid layout
             setTimeout(() => {
                 updateMobileGridLayout(GRID_COLS, GRID_ROWS);
             }, 50);
-            
+
             // Sync to desktop (convert to landscape)
             if (gridSizeSelect) {
                 gridSizeSelect.value = mobileToDesktopGridSize(mobileSize);
             }
-            
+
             saveSettings();
         });
     }
-    
+
     // Mobile speed slider - only update speed, don't change grid
     if (mobileSpeedSlider) {
         mobileSpeedSlider.addEventListener('input', () => {
@@ -1676,19 +1698,19 @@ function initializeMobileEventListeners() {
             if (speedValue) {
                 speedValue.textContent = `${mobileSpeedSlider.value}x`;
             }
-            
+
             // If game is running, update interval
             if (isGameRunning && gameInterval) {
                 clearInterval(gameInterval);
                 const baseInterval = 200;
                 const adjustedInterval = baseInterval / gameSpeed;
-                
+
                 gameInterval = setInterval(() => {
                     updateSnakeDirection();
                     moveSnake();
                 }, adjustedInterval);
             }
-            
+
             saveSettings();
         });
         mobileSpeedSlider.addEventListener('change', () => {
@@ -1703,14 +1725,14 @@ function initializeMobileEventListeners() {
             saveSettings();
         });
     }
-    
+
     // Mobile reset button
     if (mobileResetBtn) {
         mobileResetBtn.addEventListener('click', () => {
             closeAllMobilePanels();
             resetDraw();
             syncDesktopToMobile();
-            
+
             // Reset mobile winners list
             if (mobileWinnersList) {
                 mobileWinnersList.innerHTML = '<p class="empty-message">Draw results will appear here...</p>';
@@ -1723,7 +1745,7 @@ function initializeMobileEventListeners() {
             }
         });
     }
-    
+
     // Window resize handler - sync values and update grid
     // Debounced resize handler for better performance
     let resizeTimeout;
@@ -1746,7 +1768,7 @@ function initializeMobileEventListeners() {
             updateCellFontSizes();
         }, 100);
     });
-    
+
     // Initial mobile grid layout
     if (isMobile()) {
         // Small delay to ensure container is rendered
@@ -1758,7 +1780,7 @@ function initializeMobileEventListeners() {
 
 // Override addToWinnersList to also update mobile
 const originalAddToWinnersList = addToWinnersList;
-addToWinnersList = function(name, index) {
+addToWinnersList = function (name, index) {
     originalAddToWinnersList(name, index);
     addToMobileWinnersList(name, index);
     updateMobileGameUI();
@@ -1766,14 +1788,14 @@ addToWinnersList = function(name, index) {
 
 // Override stopGame to update mobile UI
 const originalStopGame = stopGame;
-stopGame = function() {
+stopGame = function () {
     originalStopGame();
     updateMobileGameUI();
 };
 
 // Override startGame to update mobile UI
 const originalStartGame = startGame;
-startGame = function(names, foodCount) {
+startGame = function (names, foodCount) {
     // Reset mobile winners list
     if (mobileWinnersList) {
         mobileWinnersList.innerHTML = '<p class="empty-message">Draw starting...</p>';
@@ -1784,7 +1806,7 @@ startGame = function(names, foodCount) {
 
 // Update mobile elapsed time during game
 const originalUpdateElapsedTime = updateElapsedTime;
-updateElapsedTime = function() {
+updateElapsedTime = function () {
     originalUpdateElapsedTime();
     updateMobileGameUI();
 };

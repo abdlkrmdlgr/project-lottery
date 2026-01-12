@@ -274,25 +274,33 @@ function updateCellFontSizes() {
 function fitTextInCell(cell) {
     if (!cell.textContent.trim()) return;
 
-    const clientWidth = cell.clientWidth;
-    const clientHeight = cell.clientHeight;
+    // Clear any previous inline font size to get natural dimensions
+    cell.style.fontSize = '';
 
-    if (clientWidth <= 0 || clientHeight <= 0) return;
+    // Force word break to ensure we can fit long names
+    cell.style.wordBreak = 'break-all';
+    cell.style.display = 'flex';
+    cell.style.alignItems = 'center';
+    cell.style.justifyContent = 'center';
 
-    // Start with a font size that fills about 80% of height
-    let fontSize = Math.floor(clientHeight * 0.85);
-    if (fontSize < 4) fontSize = 4;
-    if (fontSize > 24) fontSize = 24; // Cap for very large cells
+    const targetWidth = cell.offsetWidth - 4; // padding adjustment
+    const targetHeight = cell.offsetHeight - 4; // padding adjustment
+
+    if (targetWidth <= 0 || targetHeight <= 0) return;
+
+    // Start with a large font size and shrink until it fits
+    let fontSize = Math.floor(targetHeight * 0.9);
+    if (fontSize > 40) fontSize = 40; // High cap for very large cells
+    if (fontSize < 6) fontSize = 6;
 
     cell.style.fontSize = fontSize + 'px';
 
-    // Iteratively decrease font size until the text fits perfectly
-    // We check both scrollHeight and scrollWidth to handle wrapping and long words
+    // Shrink font size until content fits within cell dimensions
     let safetyMargin = 0;
     while (fontSize > 4 &&
-        (cell.scrollHeight > clientHeight || cell.scrollWidth > clientWidth) &&
-        safetyMargin < 20) {
-        fontSize -= 1;
+        (cell.scrollHeight > targetHeight || cell.scrollWidth > targetWidth) &&
+        safetyMargin < 30) {
+        fontSize -= 0.5; // Use smaller steps for better precision
         cell.style.fontSize = fontSize + 'px';
         safetyMargin++;
     }
